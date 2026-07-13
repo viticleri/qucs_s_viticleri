@@ -13,6 +13,7 @@ QVector<ValidationIssue> SchematicValidator::validate() const
 
   issues += checkFrequencySweepType();
   issues += checkMinimumPortsInSPSimulation();
+  issues += checkMissingSimulation();
 
   return issues;
 }
@@ -78,7 +79,7 @@ QVector<ValidationIssue> SchematicValidator::checkMinimumPortsInSPSimulation() c
       continue;
     }
 
-    if (component->Model.startsWith("VP")) {
+    if (component->Model.startsWith("Pac")) {
       // AC power source found. They start with VP for ngspice
       acSourceCount++;
     }
@@ -94,6 +95,33 @@ QVector<ValidationIssue> SchematicValidator::checkMinimumPortsInSPSimulation() c
         "If this is a 1-port SP simulation, add another AC Power souce component with the negative port connected to GND");
     issues.append(issue);
   }
+
+  return issues;
+}
+
+QVector<ValidationIssue> SchematicValidator::checkMissingSimulation() const
+{
+  QVector<ValidationIssue> issues;
+
+  // Model strings for all recognized simulation controller blocks.
+  static const QStringList kSimulationBlockModels = {
+      ".AC", ".SP", ".TR", ".DC", ".HB", ".SW", ".NOISE", ".TF"
+  };
+
+  for (Component *component : sch->a_DocComps) {
+    if (component->isActive && kSimulationBlockModels.contains(component->Model))
+      // Found one block. It's ok
+      return issues;
+  }
+
+  ValidationIssue issue;
+  issue.message = QObject::tr(
+      "The schematic does not contain any active simulation block.");
+  issue.severity = 1; // Critical - nothing to simulate
+  issue.suggestedFix = QObject::tr(
+      "Add a simulation block (e.g. .AC, .SP, .TR, .DC) to the schematic.");
+
+  issues.append(issue);
 
   return issues;
 }

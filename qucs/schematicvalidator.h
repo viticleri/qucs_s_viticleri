@@ -59,6 +59,8 @@ private:
   /// @brief ngspice needs at least two AC power sources in SP simulation
   QVector<ValidationIssue> checkMinimumPortsInSPSimulation() const;
 
+  /// @brief Simulation backends require a simulation block
+  QVector<ValidationIssue> checkMissingSimulation() const;
 
   /// @}
 };
