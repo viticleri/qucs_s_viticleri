@@ -593,6 +593,11 @@ public:
 public slots:
   void showContextMenu(const QPoint &point);
 
+  /// @brief Begins inline editing of the tab label at @p index.
+  /// @details This needs to be public in order to rename open files from the project panel
+  /// @see commitRename() cancelRename
+  void startRename(int index);
+
 protected:
   bool eventFilter(QObject *obj, QEvent *ev) override;
 
@@ -611,9 +616,6 @@ private slots:
   /// @{
   /// @brief Slot for the tab context menu's "Rename" entry.
   void slotCxMenuRename();
-
-  /// @brief Begins inline editing of the tab label at @p index.
-  void startRename(int index);
 
   /// @brief Commits the in-place tab rename currently in progress.
   void commitRename();

@@ -1326,6 +1326,17 @@ void QucsApp::slotCMenuRename()
   QString file(QucsSettings.QucsWorkDir.filePath(filename));
   QFileInfo fileinfo(file);
 
+  int index=0;
+  QucsDoc* Doc = findDoc(file, &index);
+
+  if (Doc){
+    // The document is already open in the tab, so use the rename on tab feature
+    DocumentTab->startRename(index);
+    return;
+  }
+
+  // The file is not open
+
   if (findDoc(file)) {
     QMessageBox::critical(this, tr("Error"),
         tr("Cannot rename an open file!"));
