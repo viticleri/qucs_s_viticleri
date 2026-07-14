@@ -4121,6 +4121,60 @@ void QucsApp::runPostSimCommands(Schematic* sch)
   }
 }
 
+bool QucsApp::renameDocumentTab(int index, const QString &newBase)
+{
+  QucsDoc *Doc = getDoc(index);
+  if (!Doc) return false;
+
+  // Check if the document has unsaved changes
+  if (Doc->getDocChanged()) {
+    QMessageBox::StandardButton answer = QMessageBox::warning(this, tr("Renaming Qucs-S document"),
+                         tr("The document contains unsaved changes!\n") +
+                             tr("Do you want to save and rename?"), QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+
+    if (answer != QMessageBox::Yes){
+      // The user doesn't want to save and rename -> Cancel
+      return false;
+    }
+
+    // Save the document.
+    Doc->save();
+  }
+
+  QFileInfo info(Doc->getDocName());
+  QString suffix = info.suffix();
+  QString base   = info.completeBaseName();
+
+  if (newBase.isEmpty() || newBase == base)
+    return false;   // no change / empty -> treat as cancel
+
+  QString newName = suffix.isEmpty() ? newBase : newBase + "." + suffix;
+  QDir dir = info.dir();
+  QString newPath = dir.filePath(newName);
+
+  if (QFile::exists(newPath)) {
+    QMessageBox::critical(this, tr("Error"),
+                          tr("A file named '%1' already exists!").arg(newName));
+    return false;
+  }
+  if (!dir.rename(info.fileName(), newName)) {
+    QMessageBox::critical(this, tr("Error"),
+                          tr("Cannot rename file: %1").arg(info.fileName()));
+    return false;
+  }
+
+  Doc->setName(newPath);
+  DocumentTab->setTabText(index, misc::properFileName(newPath));
+  DocumentTab->setTabToolTip(index, newPath);
+
+  if (index == DocumentTab->currentIndex())
+    slotChangeView();
+
+  slotUpdateTreeview();
+  updateRecentFilesList(newPath);
+  return true;
+}
+
 QVariant QucsFileSystemModel::data( const QModelIndex& index, int role ) const
 {
     if (role == Qt::DecorationRole) { // it's an icon
@@ -4180,6 +4234,7 @@ ContextMenuTabWidget::ContextMenuTabWidget(QucsApp *parent) : QTabWidget(parent)
   App = parent;
   setContextMenuPolicy(Qt::CustomContextMenu);
   connect(this, SIGNAL(customContextMenuRequested(const QPoint&)), this, SLOT(showContextMenu(const QPoint&)));
+  connect(tabBar(), SIGNAL(tabBarDoubleClicked(int)), this, SLOT(startRename(int)));
 }
 
 void ContextMenuTabWidget::showContextMenu(const QPoint& point)
@@ -4209,6 +4264,8 @@ void ContextMenuTabWidget::showContextMenu(const QPoint& point)
     menu.addSeparator();
     APPEND_MENU(ActionCxMenuCopyPath, slotCxMenuCopyPath, "Copy full path")
     APPEND_MENU(ActionCxMenuOpenFolder, slotCxMenuOpenFolder, "Open containing folder")
+    APPEND_MENU(ActionCxMenuRename, slotCxMenuRename, "Rename")
+
 #undef APPEND_MENU
 
     menu.exec(tabBar()->mapToGlobal(point));
@@ -4263,4 +4320,73 @@ void ContextMenuTabWidget::slotCxMenuOpenFolder()
     QFileInfo Info(dName);
     QDesktopServices::openUrl(QUrl::fromLocalFile(Info.canonicalPath()));
   }
+}
+
+
+void ContextMenuTabWidget::startRename(int index)
+{
+  if (index < 0) return;
+
+  QucsDoc *Doc = App->getDoc(index);
+  if (!Doc || Doc->getDocName().isEmpty()) {
+    QMessageBox::information(this, tr("Info"),
+                             tr("Please save the document first before renaming it."));
+    return;
+  }
+
+  editIndex = index;
+
+  if (!tabEditor) {
+    tabEditor = new QLineEdit(tabBar());
+    tabEditor->setFrame(false);
+    connect(tabEditor, SIGNAL(editingFinished()), this, SLOT(commitRename()));
+    tabEditor->installEventFilter(this);
+  }
+
+  QFileInfo info(Doc->getDocName());
+  tabEditor->setGeometry(tabBar()->tabRect(index).adjusted(2, 2, -2, -2));
+  tabEditor->setText(info.completeBaseName());  // edit the base name only
+  tabEditor->show();
+  tabEditor->raise();
+  tabEditor->selectAll();
+  tabEditor->setFocus();
+}
+
+void ContextMenuTabWidget::commitRename()
+{
+  if (!tabEditor || editIndex < 0) return;
+
+  int idx = editIndex;
+  editIndex = -1;                 // guard against re-entrancy from hide()->focusOut
+  QString newBase = tabEditor->text();
+  tabEditor->hide();
+
+  App->renameDocumentTab(idx, newBase);   // does the actual file/Doc rename
+}
+
+void ContextMenuTabWidget::cancelRename()
+{
+  editIndex = -1;
+  if (tabEditor) tabEditor->hide();
+}
+
+bool ContextMenuTabWidget::eventFilter(QObject *obj, QEvent *ev)
+{
+  if (obj == tabEditor && (ev->type() == QEvent::KeyPress || ev->type() == QEvent::ShortcutOverride)) {
+    QKeyEvent *ke = static_cast<QKeyEvent*>(ev);
+    if (ke->key() == Qt::Key_Escape) {
+      if (ev->type() == QEvent::ShortcutOverride) {
+          ev->accept();
+          return true;
+      }
+      cancelRename();
+      return true;
+    }
+  }
+  return QTabWidget::eventFilter(obj, ev);
+}
+
+void ContextMenuTabWidget::slotCxMenuRename()
+{
+  startRename(contextTabIndex);
 }

@@ -103,6 +103,15 @@ public:
   bool closeAllLeft(int);
   bool closeAllRight(int);
   bool gotoPage(const QString &, bool reloadPage = false); // to load a document
+
+
+  /// @brief Renames the document displayed in the tab at @p index.
+  /// @param index   Index of the tab whose document should be renamed.
+  /// @param newBase New base filename (without extension).
+  /// @return true on success, false if skipped or failed.
+  bool renameDocumentTab(int index, const QString &newBase);
+
+
   QucsDoc *getDoc(int No = -1);
   QucsDoc *findDoc(QString, int *Pos = 0);
   QString fileType(const QString &);
@@ -584,10 +593,35 @@ public:
 public slots:
   void showContextMenu(const QPoint &point);
 
+protected:
+  bool eventFilter(QObject *obj, QEvent *ev) override;
+
 private:
   int contextTabIndex; // index of tab where context menu was opened
   QucsApp *App;        // the main application - parent widget
+
+  /// @brief Variables for renaming the tab
+  /// @{
+  QLineEdit *tabEditor = nullptr; ///< Inline editor overlaid on a tab during rename.
+  int editIndex = -1;             ///< Index of the tab currently being renamed.
+  /// @}
+
 private slots:
+  /// @brief Variables and functions for renaming the tab
+  /// @{
+  /// @brief Slot for the tab context menu's "Rename" entry.
+  void slotCxMenuRename();
+
+  /// @brief Begins inline editing of the tab label at @p index.
+  void startRename(int index);
+
+  /// @brief Commits the in-place tab rename currently in progress.
+  void commitRename();
+
+  /// @brief Aborts the in-place tab rename currently in progress.
+  void cancelRename();
+  /// @}
+
   void slotCxMenuClose();
   void slotCxMenuCloseOthers();
   void slotCxMenuCloseAll();
