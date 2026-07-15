@@ -344,6 +344,15 @@ private:
   static bool recurRemove(const QString &);
   void closeFile(int);
 
+  /// @brief Rename a file
+  /// @param oldPath Full path to the existing file to be renamed.
+  /// @param newBase Desired new base name (with or without extension).
+  /// @return The new full file path on success, or an empty QString if
+  /// the rename was a no-op, cancelled, or failed.
+  /// @details The file extension is preserved. This is called from QucsApp::renameDocumentTab
+  /// and QucsApp::slotCMenuRename
+  QString renameFileOnDisk(const QString &oldPath, const QString &newBase);
+
   void updateRecentFilesList(QString s);
   void updateRecentProjectsList(QString pathToProj);
   void updateRecentProjectsList();

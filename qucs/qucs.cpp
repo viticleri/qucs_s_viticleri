@@ -1337,13 +1337,6 @@ void QucsApp::slotCMenuRename()
 
   // The file is not open
 
-  if (findDoc(file)) {
-    QMessageBox::critical(this, tr("Error"),
-        tr("Cannot rename an open file!"));
-    return;
-  }
-
-  QString suffix = fileinfo.suffix();
   QString base = fileinfo.completeBaseName();
   if(base.isEmpty()) {
     base = filename;
@@ -1352,18 +1345,46 @@ void QucsApp::slotCMenuRename()
   bool ok;
   QString s = QInputDialog::getText(this, tr("Rename file"), tr("Enter new filename:"), QLineEdit::Normal, base, &ok);
 
-  if(ok && !s.isEmpty()) {
-    if (!s.endsWith(suffix)) {
-      s += QStringLiteral(".") + suffix;
-    }
-    QDir dir(QucsSettings.QucsWorkDir.path());
-    if(!dir.rename(filename, s)) {
-      QMessageBox::critical(this, tr("Error"), tr("Cannot rename file: %1").arg(filename));
-      return;
-    }
+  if (!ok || s.isEmpty())
+    return;
 
+  if (!renameFileOnDisk(file, s).isEmpty()) {
     slotUpdateTreeview();
   }
+}
+
+QString QucsApp::renameFileOnDisk(const QString &oldPath, const QString &newBase)
+{
+  QFileInfo info(oldPath);
+  QString suffix = info.suffix();
+  QString base = info.completeBaseName();
+  if (base.isEmpty())
+    base = info.fileName();
+
+         // Allow callers to pass a name that already includes the extension.
+  QString requestedBase = newBase;
+  if (!suffix.isEmpty() && requestedBase.endsWith("." + suffix)) {
+    requestedBase.chop(suffix.length() + 1);
+  }
+
+  if (requestedBase.isEmpty() || requestedBase == base)
+    return QString(); // no change / cancel
+
+  QString newName = suffix.isEmpty() ? requestedBase : requestedBase + "." + suffix;
+  QDir dir = info.dir();
+  QString newPath = dir.filePath(newName);
+
+  if (QFile::exists(newPath)) {
+    QMessageBox::critical(this, tr("Error"),
+                          tr("A file named '%1' already exists!").arg(newName));
+    return QString();
+  }
+  if (!dir.rename(info.fileName(), newName)) {
+    QMessageBox::critical(this, tr("Error"),
+                          tr("Cannot rename file: %1").arg(info.fileName()));
+    return QString();
+  }
+  return newPath;
 }
 
 void QucsApp::slotCMenuDelete()
@@ -4152,35 +4173,15 @@ bool QucsApp::renameDocumentTab(int index, const QString &newBase)
     Doc->save();
   }
 
-  QFileInfo info(Doc->getDocName());
-  QString suffix = info.suffix();
-  QString base   = info.completeBaseName();
-
-  if (newBase.isEmpty() || newBase == base)
-    return false;   // no change / empty -> treat as cancel
-
-  QString newName = suffix.isEmpty() ? newBase : newBase + "." + suffix;
-  QDir dir = info.dir();
-  QString newPath = dir.filePath(newName);
-
-  if (QFile::exists(newPath)) {
-    QMessageBox::critical(this, tr("Error"),
-                          tr("A file named '%1' already exists!").arg(newName));
+  QString newPath = renameFileOnDisk(Doc->getDocName(), newBase);
+  if (newPath.isEmpty())
     return false;
-  }
-  if (!dir.rename(info.fileName(), newName)) {
-    QMessageBox::critical(this, tr("Error"),
-                          tr("Cannot rename file: %1").arg(info.fileName()));
-    return false;
-  }
 
   Doc->setName(newPath);
   DocumentTab->setTabText(index, misc::properFileName(newPath));
   DocumentTab->setTabToolTip(index, newPath);
-
   if (index == DocumentTab->currentIndex())
     slotChangeView();
-
   slotUpdateTreeview();
   updateRecentFilesList(newPath);
   return true;
