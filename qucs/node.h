@@ -77,6 +77,13 @@ public:
 
   Node* merge(Node* other);
 
+  /// Functions for handling the color of the node
+  /// @{
+  QColor color() const { return m_color; }
+  void setColor(const QColor& c) { m_color = c; }
+  void clearColor() { m_color = Qt::darkBlue; }
+  /// @}
+
 private:
   // Nodes usually have quite a few connections. In ideal case, when all wire
   // placement optimizations work properly, there can be at most four connections
@@ -88,6 +95,9 @@ private:
   // A node doesn't claim ownership of any connected object, storing raw pointers is OK.
   std::list<Wire*> m_wires;
   std::list<Component*> m_components;
+
+  /// Color of the node
+  QColor m_color;
 };
 
 #endif

@@ -60,11 +60,21 @@ public:
   void connectPort1(Node* n);
   void connectPort2(Node* n);
 
+  /// Functions for handling the color of the wire
+  /// @{
+  QColor color() const { return m_color; }
+  void setColor(const QColor& c) { m_color = c; }
+  void clearColor() { m_color = Qt::darkBlue; }
+  /// @}
+
 private:
   void updateCenter() noexcept;
   void updateP1() noexcept;
   void updateP2() noexcept;
   void updatePorts() noexcept;
+
+  /// Color of the wire
+  QColor m_color;
 };
 
 #endif
