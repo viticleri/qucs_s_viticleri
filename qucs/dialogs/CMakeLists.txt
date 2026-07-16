@@ -17,6 +17,7 @@ set(DIALOGS_HDRS
     librarydialog.h
     loaddialog.h
     matchdialog.h
+    netcolordialog.h
     newprojdialog.h
     qucssettingsdialog.h
     qucsshortcutdialog.h
@@ -49,6 +50,7 @@ set(DIALOGS_SRCS
     settingsdialog.cpp
     matchdialog.cpp
     simmessage.cpp
+    netcolordialog.cpp
     newprojdialog.cpp
     sweepdialog.cpp
     exportdialog.cpp

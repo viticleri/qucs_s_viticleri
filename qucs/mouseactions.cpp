@@ -28,6 +28,7 @@
 #include "diagrams/tabdiagram.h"
 #include "diagrams/timingdiagram.h"
 #include "dialogs/labeldialog.h"
+#include "dialogs/netcolordialog.h"
 #include "dialogs/textboxdialog.h"
 #include "dialogs/tuner.h"
 #include "extsimkernels/customsimdialog.h"
@@ -662,9 +663,21 @@ void MouseActions::rightPressMenu(Schematic *Doc, QMouseEvent *Event, float fX, 
     while (true) {
         if (focusElement) {
             focusElement->isSelected = true;
-            QAction *editProp = new QAction(QObject::tr("Edit Properties"), QucsMain);
-            QObject::connect(editProp, SIGNAL(triggered(bool)), QucsMain, SLOT(slotEditElement()));
-            ComponentMenu->addAction(editProp);
+
+            if (focusElement->Type == isNode || focusElement->Type == isWire) {
+              // If this is a node or a wire, then open the properties
+              QAction *setColor = new QAction(QObject::tr("Set Net Color..."), QucsMain);
+              Element *elem = focusElement;
+              QObject::connect(setColor, &QAction::triggered, [this, Doc, elem]() {
+                setNetColor(Doc, elem);
+              });
+              ComponentMenu->addAction(setColor);
+            } else {
+              // Same behavior as before
+              QAction *editProp = new QAction(QObject::tr("Edit Properties"), QucsMain);
+              QObject::connect(editProp, SIGNAL(triggered(bool)), QucsMain, SLOT(slotEditElement()));
+              ComponentMenu->addAction(editProp);
+            }
 
             if ((focusElement->Type & isComponent) == 0)
                 break;
@@ -2053,4 +2066,30 @@ QPoint MouseActions::updateMouseMove(Schematic* Doc, QMouseEvent* Event, bool on
     return delta;
 }
 
-// vim:ts=8:sw=2:noet
+
+void MouseActions::setNetColor(Schematic *Doc, Element *elem)
+{
+  QColor initial;
+  if (elem->Type == isNode) {
+    initial = ((Node *) elem)->color();
+  } else if (elem->Type == isWire) {
+      initial = ((Wire *) elem)->color();
+  } else {
+    return;
+  }
+
+  NetColorDialog dlg(initial, Doc);
+  if (dlg.exec() != QDialog::Accepted)
+    return;
+
+  QColor netcolor = dlg.resultColor();
+
+  if (elem->Type == isNode) {
+    ((Node *) elem)->setColor(netcolor);
+  } else {
+    ((Wire *) elem)->setColor(netcolor);
+  }
+
+  Doc->setChanged(true, true);
+  Doc->viewport()->update();
+}

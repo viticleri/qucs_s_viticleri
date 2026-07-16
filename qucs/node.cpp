@@ -18,6 +18,7 @@
 
 #include "component.h"
 #include "wire.h"
+#include <unordered_set> // Needed to propagate the color property to wires and other nodes
 
 #include <QPainter>
 

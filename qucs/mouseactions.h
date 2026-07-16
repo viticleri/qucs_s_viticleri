@@ -140,6 +140,8 @@ public:
   void mirrorYMovingElements(Schematic*, bool doPaint=false);
   void rotateMovingElements(Schematic*, bool doPaint=false);
 
+  void setNetColor(Schematic *Doc, Element *elem);
+
   // Helper functions
   QPoint updateMouseMove(Schematic*, QMouseEvent*, bool onGrid=true);
 };
