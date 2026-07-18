@@ -19,6 +19,7 @@
 #define WIRE_H
 
 #include "conductor.h"
+#include <list> // Style settings propagation through the schematic
 
 class Schematic;
 class QPainter;
@@ -66,6 +67,14 @@ public:
   void setColor(const QColor& c) { m_color = c; }
   void clearColor() { m_color = Qt::darkBlue; }
   /// @}
+
+  /// @brief Propagate the color setting through the nodes and wires across the schematic
+  /// @param c Color to propagate
+  /// @param allNodes List of all the nodes in the schematic
+  /// @param allWires List of all the wires in the schematic
+  void propagateColor(const QColor& c,
+                      const std::list<Node*>& allNodes,
+                      const std::list<Wire*>& allWires);
 
 private:
   void updateCenter() noexcept;

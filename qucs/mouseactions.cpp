@@ -2085,9 +2085,11 @@ void MouseActions::setNetColor(Schematic *Doc, Element *elem)
   QColor netcolor = dlg.resultColor();
 
   if (elem->Type == isNode) {
-    ((Node *) elem)->setColor(netcolor);
+    // Set the color of the current node and propagate to all nodes and wires across the schematic
+    ((Node *) elem)->propagateColor(netcolor, *Doc->a_Nodes, *Doc->a_Wires);
   } else {
-    ((Wire *) elem)->setColor(netcolor);
+    // Set the color of the current wire and propagate to all nodes and wires across the schematic
+    ((Wire *) elem)->propagateColor(netcolor, *Doc->a_Nodes, *Doc->a_Wires);
   }
 
   Doc->setChanged(true, true);

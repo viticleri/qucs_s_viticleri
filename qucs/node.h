@@ -84,6 +84,14 @@ public:
   void clearColor() { m_color = Qt::darkBlue; }
   /// @}
 
+  /// @brief Propagate the color setting through the nodes and wires across the schematic
+  /// @param c Color to propagate
+  /// @param allNodes List of all the nodes in the schematic
+  /// @param allWires List of all the wires in the schematic
+  void propagateColor(const QColor& c,
+                      const std::list<Node*>& allNodes,
+                      const std::list<Wire*>& allWires);
+
 private:
   // Nodes usually have quite a few connections. In ideal case, when all wire
   // placement optimizations work properly, there can be at most four connections

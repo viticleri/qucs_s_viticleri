@@ -324,6 +324,10 @@ void Wire::connectPort1(Node* n)
   n->connect(this);
   Port1 = n;
   setP1(Port1->center());
+
+  // Update color
+  setColor(n->color());
+
 }
 
 void Wire::connectPort2(Node* n)
@@ -341,6 +345,9 @@ void Wire::connectPort2(Node* n)
   n->connect(this);
   Port2 = n;
   setP2(Port2->center());
+
+  // Update color
+  setColor(n->color());
 }
 
 inline void Wire::updateCenter() noexcept {
@@ -365,4 +372,25 @@ void Wire::updateP2() noexcept {
 void Wire::updatePorts() noexcept {
   updateP1();
   updateP2();
+}
+
+void Wire::propagateColor(const QColor& c,
+                          const std::list<Node*>& allNodes,
+                          const std::list<Wire*>& allWires) {
+  if (Port1) {
+    Port1->propagateColor(c, allNodes, allWires);
+  } else if (Port2) {
+    Port2->propagateColor(c, allNodes, allWires);
+  } else {
+    // Floating wire, no connected node
+    setColor(c);
+    if (hasLabel()) {
+      const QString key = label()->Name;
+      for (Wire* candidate : allWires) {
+        if (candidate != this && candidate->hasLabel() && candidate->label()->Name == key) {
+          candidate->propagateColor(c, allNodes, allWires);
+        }
+      }
+    }
+  }
 }

@@ -129,3 +129,96 @@ bool Node::isOverlapping(const Node* other) const {
 
   return isOverlapping(other->x(), other->y());
 }
+
+
+void Node::propagateColor(const QColor& c,
+                          const std::list<Node*>& allNodes,
+                          const std::list<Wire*>& allWires)
+{
+  std::unordered_set<Node*> visitedNodes;
+  std::unordered_set<Wire*> visitedWires;
+  std::list<Node*> nodeQueue;
+  std::list<Wire*> wireQueue;
+
+  // Set the color and queue a node
+  auto visitNode = [&](Node* n) {
+    if (visitedNodes.insert(n).second) {
+      n->setColor(c);
+      nodeQueue.push_back(n);
+    }
+  };
+
+  // Set the color and queue a wire
+  auto visitWire = [&](Wire* w) {
+    if (visitedWires.insert(w).second) {
+      w->setColor(c);
+      wireQueue.push_back(w);
+    }
+  };
+
+  visitNode(this);
+
+  // Drain the nodes and wires queues. A visit to a node may find new nodes to queue. The same with wires.
+  while (!nodeQueue.empty() || !wireQueue.empty()) {
+    // Inspect nodes
+    while (!nodeQueue.empty()) {
+      Node* node = nodeQueue.front();
+      nodeQueue.pop_front();
+
+      // Propagate through every wire touching this node.
+      for (Wire* wire : node->wires()) {
+        visitWire(wire);
+      }
+
+      // Look for any other node sharing this node's net name.
+      if (node->hasLabel()) {
+        const QString key = node->label()->Name;
+
+        // Nodes
+        for (Node* candidate : allNodes) {
+          if (candidate != node && candidate->hasLabel() && candidate->label()->Name == key) {
+            visitNode(candidate);
+          }
+        }
+        for (Wire* candidate : allWires) {
+          if (candidate->hasLabel() && candidate->label()->Name == key) {
+            visitWire(candidate);
+          }
+        }
+      }
+    }
+
+    // Inspect wires
+    while (!wireQueue.empty()) {
+      Wire* wire = wireQueue.front();
+      wireQueue.pop_front();
+
+      // Propagate to the nodes at the ends
+      if (wire->Port1) {
+        visitNode(wire->Port1);
+      }
+      if (wire->Port2) {
+        visitNode(wire->Port2);
+      }
+
+      // Look for any other wire/node sharing this wire's net name.
+      if (wire->hasLabel()) {
+        const QString key = wire->label()->Name;
+
+        // Wires
+        for (Wire* candidate : allWires) {
+          if (candidate != wire && candidate->hasLabel() && candidate->label()->Name == key) {
+            visitWire(candidate);
+          }
+        }
+
+        // Nodes
+        for (Node* candidate : allNodes) {
+          if (candidate->hasLabel() && candidate->label()->Name == key) {
+            visitNode(candidate);
+          }
+        }
+      }
+    }
+  }
+}
