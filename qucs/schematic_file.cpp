@@ -1007,19 +1007,21 @@ bool Schematic::loadComponents(QTextStream *stream, std::list<Component*> *List)
 // Inserts a wire without performing logic for optimizing.
 void Schematic::simpleInsertWire(Wire *pw)
 {
-  Node* pn = provideNode(pw->P1());
+  Node* pn1 = provideNode(pw->P1());
 
   if(pw->P1() == pw->P2()) {
-    pn->acquireLabel(pw->releaseLabel());   // wire with length zero are just node labels
+    pn1->acquireLabel(pw->releaseLabel());   // wire with length zero are just node labels
     delete pw;           // delete wire because this is not a wire
     return;
   }
-  pn->connect(pw);  // connect schematic node to component node
-  pw->Port1 = pn;
+  pn1->connect(pw);  // connect schematic node to component node
+  pw->Port1 = pn1;
 
-  pn = provideNode(pw->P2());
-  pn->connect(pw);  // connect schematic node to component node
-  pw->Port2 = pn;
+  Node* pn2 = provideNode(pw->P2());
+  pn2->connect(pw);  // connect schematic node to component node
+  pw->Port2 = pn2;
+
+  reconcileNetColor(pn1, pn2);
 
   a_DocWires.push_back(pw);
 }

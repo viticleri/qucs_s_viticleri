@@ -222,3 +222,15 @@ void Node::propagateColor(const QColor& c,
     }
   }
 }
+
+void Node::connect(Wire* wire)
+{
+  if (is_connected(wire)) return;
+  m_wires.emplace_front(wire);
+
+  if (wire->color() != Qt::darkBlue && m_color == Qt::darkBlue) {
+    m_color = wire->color();
+  } else if (m_color != Qt::darkBlue && wire->color() == Qt::darkBlue) {
+    wire->setColor(m_color);
+  }
+}

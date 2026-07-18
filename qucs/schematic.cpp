@@ -2219,3 +2219,11 @@ bool Schematic::checkDplAndDatNames()
     }
     return false;
 }
+
+
+void Schematic::reconcileNetColor(Node* a, Node* b)
+{
+  if (a->color() != b->color()) {
+    a->propagateColor(a->color(), *a_Nodes, *a_Wires);
+  }
+}

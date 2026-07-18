@@ -565,6 +565,7 @@ private:
   void simpleInsertComponent(Component*);
   bool loadComponents(QTextStream*, std::list<Component*> *List=0);
   void simpleInsertWire(Wire*);
+  void reconcileNetColor(Node* a, Node* b);
   bool loadWires(QTextStream*, std::list<Element*> *List=0);
   bool loadDiagrams(QTextStream*, std::list<Diagram*>*);
   bool loadPaintings(QTextStream*, std::list<Painting*>*);

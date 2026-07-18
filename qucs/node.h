@@ -35,7 +35,7 @@ public:
 
   // Add an element to the node's connections.
   // No-op if element is already connected.
-  void connect(Wire* wire) { if (!is_connected(wire)) m_wires.emplace_front(wire); }
+  void connect(Wire* wire);
   void connect(Component* comp) { if (!is_connected(comp)) m_components.emplace_front(comp); }
 
   // Remove element from the node's connections.
