@@ -149,11 +149,13 @@ SET(QUCS_SRCS
   imagewriter.cpp printerwriter.cpp projectView.cpp
   symbolwidget.cpp wire_planner.cpp
   qucsshortcutmanager.cpp
+  dcbiaslabel.cpp
 )
 
 SET(QUCS_HDRS
 element.h
 conductor.h
+dcbiaslabel.h
 healer.h
 main.h
 messagedock.h
@@ -268,6 +270,13 @@ TARGET_LINK_LIBRARIES( ${QUCS_NAME}
     components diagrams dialogs geometry paintings extsimkernels spicecomponents magnetics qt3_compat
     Qt6::Core  Qt6::Gui  Qt6::Widgets Qt6::Svg  Qt6::SvgWidgets Qt6::Xml  Qt6::PrintSupport )
 SET_TARGET_PROPERTIES(${QUCS_NAME} PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+
+add_executable(test_dcbiaslabel
+    test_dcbiaslabel.cpp
+    dcbiaslabel.cpp
+)
+target_link_libraries(test_dcbiaslabel PRIVATE Qt6::Core)
+add_test(NAME DcBiasLabelTest COMMAND test_dcbiaslabel)
 #
 # Prepare the installation
 #

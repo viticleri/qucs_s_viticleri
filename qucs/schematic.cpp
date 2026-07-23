@@ -22,6 +22,7 @@
 #include "components/vafile.h"
 #include "components/verilogfile.h"
 #include "components/vhdlfile.h"
+#include "dcbiaslabel.h"
 #include "diagrams/diagram.h"
 #include "main.h"
 #include "mouseactions.h"
@@ -507,6 +508,18 @@ void Schematic::drawDcBiasPoints(QPainter* painter) {
 
         int rectX = x - rectWidth / 2;
         int rectY = y - rectHeight / 2;
+
+        const QRect labelRect(rectX, rectY, rectWidth, rectHeight);
+
+        const bool suppressLabel = std::ranges::any_of(
+            pn->components(), [&labelRect](const Component* component) {
+              return shouldSuppressDcBiasLabel(component->Model, labelRect,
+                                               component->boundingRect());
+            });
+
+        if (suppressLabel) {
+          continue;
+        }
 
         painter->setBrush(QBrush(QColor(230,230,230)));
         painter->setPen(Qt::NoPen);
