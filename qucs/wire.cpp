@@ -324,10 +324,6 @@ void Wire::connectPort1(Node* n)
   n->connect(this);
   Port1 = n;
   setP1(Port1->center());
-
-  // Update color
-  setColor(n->color());
-
 }
 
 void Wire::connectPort2(Node* n)
@@ -345,9 +341,6 @@ void Wire::connectPort2(Node* n)
   n->connect(this);
   Port2 = n;
   setP2(Port2->center());
-
-  // Update color
-  setColor(n->color());
 }
 
 inline void Wire::updateCenter() noexcept {
