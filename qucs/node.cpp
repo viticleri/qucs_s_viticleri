@@ -24,7 +24,7 @@
 
 Node::Node(int x, int y)
   : DType("")
-      , State(0), m_color(Qt::darkBlue)
+      , State(0), m_color(Qt::darkBlue), m_lineWidth(2)
 {
   Type  = isNode;
 
@@ -43,13 +43,13 @@ void Node::paint(QPainter* painter) const {
       if (hasLabel()) {
         painter->fillRect(cx-2, cy-2, 4, 4, m_color); // open but labeled
       } else {
-        painter->setPen(QPen(Qt::red,1));  // node is open
+        painter->setPen(QPen(Qt::red, m_lineWidth));  // node is open
         painter->drawEllipse(cx-4, cy-4, 8, 8);
       }
   }
   else if (conn_count() > 2) {
       painter->setBrush(m_color);  // more than 2 connections
-      painter->setPen(QPen(m_color,1));
+      painter->setPen(QPen(m_color, m_lineWidth));
       painter->drawEllipse(cx-3, cy-3, 6, 6);
   }
   else if (m_wires.size() != 2) {
@@ -131,7 +131,7 @@ bool Node::isOverlapping(const Node* other) const {
 }
 
 
-void Node::propagateColor(const QColor& c,
+void Node::propagateStyle(const QColor& c, int lineWidth,
                           const std::list<Node*>& allNodes,
                           const std::list<Wire*>& allWires)
 {
@@ -144,6 +144,7 @@ void Node::propagateColor(const QColor& c,
   auto visitNode = [&](Node* n) {
     if (visitedNodes.insert(n).second) {
       n->setColor(c);
+      n->setLineWidth(lineWidth);
       nodeQueue.push_back(n);
     }
   };
@@ -152,6 +153,7 @@ void Node::propagateColor(const QColor& c,
   auto visitWire = [&](Wire* w) {
     if (visitedWires.insert(w).second) {
       w->setColor(c);
+      w->setLineWidth(lineWidth);
       wireQueue.push_back(w);
     }
   };
@@ -230,7 +232,9 @@ void Node::connect(Wire* wire)
 
   if (wire->color() != Qt::darkBlue && m_color == Qt::darkBlue) {
     m_color = wire->color();
+    m_lineWidth = wire->lineWidth();
   } else if (m_color != Qt::darkBlue && wire->color() == Qt::darkBlue) {
     wire->setColor(m_color);
+    wire->setLineWidth(m_lineWidth);
   }
 }

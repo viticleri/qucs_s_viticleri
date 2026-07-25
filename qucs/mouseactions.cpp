@@ -669,7 +669,7 @@ void MouseActions::rightPressMenu(Schematic *Doc, QMouseEvent *Event, float fX, 
               QAction *setColor = new QAction(QObject::tr("Set Net Color..."), QucsMain);
               Element *elem = focusElement;
               QObject::connect(setColor, &QAction::triggered, [this, Doc, elem]() {
-                setNetColor(Doc, elem);
+                setNetStyle(Doc, elem);
               });
               ComponentMenu->addAction(setColor);
             } else {
@@ -2067,29 +2067,34 @@ QPoint MouseActions::updateMouseMove(Schematic* Doc, QMouseEvent* Event, bool on
 }
 
 
-void MouseActions::setNetColor(Schematic *Doc, Element *elem)
+void MouseActions::setNetStyle(Schematic *Doc, Element *elem)
 {
-  QColor initial;
+  QColor initialColor;
+  int initialWidth;
+
   if (elem->Type == isNode) {
-    initial = ((Node *) elem)->color();
+    initialColor = ((Node*)elem)->color();
+    initialWidth = ((Node*)elem)->lineWidth();
   } else if (elem->Type == isWire) {
-      initial = ((Wire *) elem)->color();
+    initialColor = ((Wire*)elem)->color();
+    initialWidth = ((Wire*)elem)->lineWidth();
   } else {
     return;
   }
 
-  NetColorDialog dlg(initial, Doc);
+  NetColorDialog dlg(initialColor, initialWidth, Doc);
   if (dlg.exec() != QDialog::Accepted)
     return;
 
   QColor netcolor = dlg.resultColor();
+  int netLinewidth = dlg.resultLineWidth();
 
   if (elem->Type == isNode) {
     // Set the color of the current node and propagate to all nodes and wires across the schematic
-    ((Node *) elem)->propagateColor(netcolor, *Doc->a_Nodes, *Doc->a_Wires);
+    ((Node *) elem)->propagateStyle(netcolor, netLinewidth, *Doc->a_Nodes, *Doc->a_Wires);
   } else {
     // Set the color of the current wire and propagate to all nodes and wires across the schematic
-    ((Wire *) elem)->propagateColor(netcolor, *Doc->a_Nodes, *Doc->a_Wires);
+    ((Wire *) elem)->propagateStyle(netcolor, netLinewidth, *Doc->a_Nodes, *Doc->a_Wires);
   }
 
   Doc->setChanged(true, true);

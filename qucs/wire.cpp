@@ -22,7 +22,7 @@
 
 #include <QPainter>
 
-Wire::Wire(int _x1, int _y1, int _x2, int _y2) : m_color(Qt::darkBlue)
+Wire::Wire(int _x1, int _y1, int _x2, int _y2) : m_color(Qt::darkBlue), m_lineWidth(2)
 {
   x1 = _x1;
   y1 = _y1;
@@ -91,11 +91,11 @@ void Wire::paint(QPainter *painter) const {
   if (isSelected) {
     painter->setPen(QPen(m_color, 6));
     painter->drawLine(x1, y1, x2, y2);
-    painter->setPen(QPen(Qt::lightGray,2));
+    painter->setPen(QPen(Qt::lightGray, m_lineWidth));
     painter->drawLine(x1, y1, x2, y2);
   }
   else {
-    painter->setPen(QPen(m_color,2));
+    painter->setPen(QPen(m_color, m_lineWidth));
     painter->drawLine(x1, y1, x2, y2);
   }
   painter->restore();
@@ -374,13 +374,13 @@ void Wire::updatePorts() noexcept {
   updateP2();
 }
 
-void Wire::propagateColor(const QColor& c,
+void Wire::propagateStyle(const QColor& c, int lineWidth,
                           const std::list<Node*>& allNodes,
                           const std::list<Wire*>& allWires) {
   if (Port1) {
-    Port1->propagateColor(c, allNodes, allWires);
+    Port1->propagateStyle(c, lineWidth, allNodes, allWires);
   } else if (Port2) {
-    Port2->propagateColor(c, allNodes, allWires);
+    Port2->propagateStyle(c, lineWidth, allNodes, allWires);
   } else {
     // Floating wire, no connected node
     setColor(c);
@@ -388,7 +388,7 @@ void Wire::propagateColor(const QColor& c,
       const QString key = label()->Name;
       for (Wire* candidate : allWires) {
         if (candidate != this && candidate->hasLabel() && candidate->label()->Name == key) {
-          candidate->propagateColor(c, allNodes, allWires);
+          candidate->propagateStyle(c, lineWidth, allNodes, allWires);
         }
       }
     }

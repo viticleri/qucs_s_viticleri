@@ -1021,7 +1021,7 @@ void Schematic::simpleInsertWire(Wire *pw)
   pn2->connect(pw);  // connect schematic node to component node
   pw->Port2 = pn2;
 
-  reconcileNetColor(pn1, pn2);
+  reconcileNetStyle(pn1, pn2);
 
   a_DocWires.push_back(pw);
 }

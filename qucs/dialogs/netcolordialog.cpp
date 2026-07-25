@@ -14,11 +14,12 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-NetColorDialog::NetColorDialog(const QColor& initialColor, QWidget *parent)
-    : QDialog(parent), netcolor(initialColor)
+NetColorDialog::NetColorDialog(const QColor& initialColor, int initialLineWidth, QWidget *parent)
+    : QDialog(parent), netcolor(initialColor), m_lineWidth(2)
 {
   setWindowTitle(tr("Net Style"));
 
+  /// Color row
   QHBoxLayout *row = new QHBoxLayout;
   row->addWidget(new QLabel(tr("Net color:"), this));
 
@@ -33,12 +34,22 @@ NetColorDialog::NetColorDialog(const QColor& initialColor, QWidget *parent)
   row->addWidget(defaultBtn);
   row->addStretch();
 
+  /// Linewidth row
+  QHBoxLayout *widthRow = new QHBoxLayout;
+  widthRow->addWidget(new QLabel(tr("Line width:"), this));
+  m_widthSpin = new QSpinBox(this);
+  m_widthSpin->setRange(1, 10);
+  m_widthSpin->setValue(initialLineWidth);
+  connect(m_widthSpin, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int v){ m_lineWidth = v; });
+  widthRow->addWidget(m_widthSpin);
+
   QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
   connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
   connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
   QVBoxLayout *layout = new QVBoxLayout(this);
   layout->addLayout(row);
+  layout->addLayout(widthRow);
   layout->addWidget(buttonBox);
 }
 
