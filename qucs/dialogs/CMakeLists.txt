@@ -13,7 +13,6 @@ set(DIALOGS_HDRS
     digisettingsdialog.h
     exportdialog.h
     importdialog.h
-    labeldialog.h
     librarydialog.h
     loaddialog.h
     matchdialog.h
@@ -44,7 +43,6 @@ set(DIALOGS_SRCS
     qucssettingsdialog.cpp
     importdialog.cpp
     savedialog.cpp
-    labeldialog.cpp
     searchdialog.cpp
     librarydialog.cpp
     settingsdialog.cpp
@@ -69,7 +67,6 @@ set(DIALOGS_MOC_HDRS
     digisettingsdialog.h
     exportdialog.h
     importdialog.h
-    labeldialog.h
     librarydialog.h
     loaddialog.h
     matchdialog.h

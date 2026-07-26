@@ -68,7 +68,6 @@
 #include "dialogs/qucssettingsdialog.h"
 #include "dialogs/searchdialog.h"
 #include "dialogs/sweepdialog.h"
-#include "dialogs/labeldialog.h"
 #include "dialogs/matchdialog.h"
 #include "dialogs/simmessage.h"
 #include "dialogs/exportdialog.h"

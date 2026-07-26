@@ -27,7 +27,6 @@
 #include "diagrams/markerdialog.h"
 #include "diagrams/tabdiagram.h"
 #include "diagrams/timingdiagram.h"
-#include "dialogs/labeldialog.h"
 #include "dialogs/netpropertiesdialog.h"
 #include "dialogs/textboxdialog.h"
 #include "dialogs/tuner.h"
@@ -130,21 +129,39 @@ bool MouseActions::pasteElements(Schematic *Doc)
 // -----------------------------------------------------------
 void MouseActions::editLabel(Schematic *Doc, WireLabel *pl)
 {
-    LabelDialog *Dia = new LabelDialog(pl, Doc);
-    int Result = Dia->exec();
-    if (Result == 0)
-        return;
+    Conductor *owner = pl->owner();
 
-    QString Name = Dia->NodeName->text();
-    QString Value = Dia->InitValue->text();
+    QColor initialColor;
+    int initialWidth = 2;
+    if (owner->Type == isNode){
+      initialColor = ((Node*)owner)->color();  initialWidth = ((Node*)owner)->lineWidth();
+    } else if (owner->Type == isWire) {
+      initialColor = ((Wire*)owner)->color();  initialWidth = ((Wire*)owner)->lineWidth();
+    }
+
+    NetPropertiesDialog *Dia = new NetPropertiesDialog(initialColor, initialWidth, pl->Name, pl->initValue, Doc);
+    if (Dia->exec() != QDialog::Accepted) {
+      delete Dia;
+      return;
+    }
+
+    QString Name = Dia->resultName();
+    QString Value = Dia->resultInitValue();
+    QColor color = Dia->resultColor();
+    int lineWidth = Dia->resultLineWidth();
     delete Dia;
+
+    // Style always propagates across the whole net.
+    if (owner->Type == isNode) {
+      ((Node*)owner)->propagateStyle(color, lineWidth, *Doc->a_Nodes, *Doc->a_Wires);
+    } else if (owner->Type == isWire) {
+      ((Wire*)owner)->propagateStyle(color, lineWidth, *Doc->a_Nodes, *Doc->a_Wires);
+    }
+
 
     if (Name.isEmpty() && Value.isEmpty()) { // if nothing entered, delete label
         pl->owner()->dropLabel();               // delete name of wire
     } else {
-        if (Result == 1)
-            return; // nothing changed
-
         int old_x2 = pl->x2;
         pl->setName(Name); // set new name
         pl->initValue = Value;
@@ -801,13 +818,20 @@ void MouseActions::MPressLabel(Schematic *Doc, QMouseEvent *, float fX, float fY
             return;
     }
 
-    QString Name, Value;
+    QColor initialColor;
+    int initialWidth = 2;
     Element *pe = nullptr;
     // is wire line already labeled ?
-    if (pw)
-        pe = Doc->getWireLabel(pw->Port1);
-    else
-        pe = Doc->getWireLabel(pn);
+    if (pw) {
+      pe = Doc->getWireLabel(pw->Port1);
+      initialColor = pw->color();
+      initialWidth = pw->lineWidth();
+    } else {
+      pe = Doc->getWireLabel(pn);
+      initialColor = pn->color();
+      initialWidth = pn->lineWidth();
+    }
+
     if (pe) {
         if (pe->Type & isComponent) {
             QMessageBox::information(0,
@@ -818,13 +842,27 @@ void MouseActions::MPressLabel(Schematic *Doc, QMouseEvent *, float fX, float fY
         pl = ((Conductor *) pe)->label();
     }
 
-    LabelDialog *Dia = new LabelDialog(pl, Doc);
-    if (Dia->exec() == 0)
-        return;
+    NetPropertiesDialog *Dia = new NetPropertiesDialog(initialColor, initialWidth,
+                                                       pl ? pl->Name : QString(),
+                                                       pl ? pl->initValue : QString(),
+                                                       Doc);
+    if (Dia->exec() != QDialog::Accepted) {
+      delete Dia;
+      return;
+    }
 
-    Name = Dia->NodeName->text();
-    Value = Dia->InitValue->text();
+    QString Name = Dia->resultName();
+    QString Value = Dia->resultInitValue();
+    QColor color = Dia->resultColor();
+    int lineWidth = Dia->resultLineWidth();
     delete Dia;
+
+    // Propagate style
+    if (pw) {
+      pw->propagateStyle(color, lineWidth, *Doc->a_Nodes, *Doc->a_Wires);
+    } else {
+      pn->propagateStyle(color, lineWidth, *Doc->a_Nodes, *Doc->a_Wires);
+    }
 
     if (Name.isEmpty() && Value.isEmpty()) { // if nothing entered, delete name
         if (pe) {
