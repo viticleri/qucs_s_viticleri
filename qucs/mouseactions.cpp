@@ -28,7 +28,7 @@
 #include "diagrams/tabdiagram.h"
 #include "diagrams/timingdiagram.h"
 #include "dialogs/labeldialog.h"
-#include "dialogs/netcolordialog.h"
+#include "dialogs/netpropertiesdialog.h"
 #include "dialogs/textboxdialog.h"
 #include "dialogs/tuner.h"
 #include "extsimkernels/customsimdialog.h"
@@ -666,12 +666,11 @@ void MouseActions::rightPressMenu(Schematic *Doc, QMouseEvent *Event, float fX, 
 
             if (focusElement->Type == isNode || focusElement->Type == isWire) {
               // If this is a node or a wire, then open the properties
-              QAction *setColor = new QAction(QObject::tr("Set Net Color..."), QucsMain);
-              Element *elem = focusElement;
-              QObject::connect(setColor, &QAction::triggered, [this, Doc, elem]() {
-                setNetStyle(Doc, elem);
+              QAction *setProps = new QAction(QObject::tr("Set Net Properties..."), QucsMain);              Element *elem = focusElement;
+              QObject::connect(setProps, &QAction::triggered, [this, Doc, elem]() {
+                setNetProperties(Doc, elem);
               });
-              ComponentMenu->addAction(setColor);
+              ComponentMenu->addAction(setProps);
             } else {
               // Same behavior as before
               QAction *editProp = new QAction(QObject::tr("Edit Properties"), QucsMain);
@@ -2067,34 +2066,55 @@ QPoint MouseActions::updateMouseMove(Schematic* Doc, QMouseEvent* Event, bool on
 }
 
 
-void MouseActions::setNetStyle(Schematic *Doc, Element *elem)
+void MouseActions::setNetProperties(Schematic *Doc, Element *elem)
 {
   QColor initialColor;
-  int initialWidth;
+  int initialWidth = 2;
+  if (elem->Type == isNode) { initialColor = ((Node*)elem)->color(); initialWidth = ((Node*)elem)->lineWidth(); }
+  else if (elem->Type == isWire) { initialColor = ((Wire*)elem)->color(); initialWidth = ((Wire*)elem)->lineWidth(); }
+  else return;
 
-  if (elem->Type == isNode) {
-    initialColor = ((Node*)elem)->color();
-    initialWidth = ((Node*)elem)->lineWidth();
-  } else if (elem->Type == isWire) {
-    initialColor = ((Wire*)elem)->color();
-    initialWidth = ((Wire*)elem)->lineWidth();
-  } else {
-    return;
+  // Net-wide label lookup. The label may live on any node/wire in this net, not necessarily on the element that was clicked.
+  Element *pe = (elem->Type == isWire) ? Doc->getWireLabel(((Wire*)elem)->Port1)
+                                       : Doc->getWireLabel((Node*)elem);
+
+  QString initialName, initialValue;
+  if (pe) {
+    WireLabel* lbl = ((Conductor*)pe)->label();
+    initialName = lbl->Name;
+    initialValue = lbl->initValue;
   }
 
-  NetColorDialog dlg(initialColor, initialWidth, Doc);
-  if (dlg.exec() != QDialog::Accepted)
-    return;
-
-  QColor netcolor = dlg.resultColor();
-  int netLinewidth = dlg.resultLineWidth();
+  NetPropertiesDialog dlg(initialColor, initialWidth, initialName, initialValue, Doc);
+  if (dlg.exec() != QDialog::Accepted) return;
 
   if (elem->Type == isNode) {
-    // Set the color of the current node and propagate to all nodes and wires across the schematic
-    ((Node *) elem)->propagateStyle(netcolor, netLinewidth, *Doc->a_Nodes, *Doc->a_Wires);
+    ((Node*)elem)->propagateStyle(dlg.resultColor(), dlg.resultLineWidth(), *Doc->a_Nodes, *Doc->a_Wires);
   } else {
-    // Set the color of the current wire and propagate to all nodes and wires across the schematic
-    ((Wire *) elem)->propagateStyle(netcolor, netLinewidth, *Doc->a_Nodes, *Doc->a_Wires);
+    ((Wire*)elem)->propagateStyle(dlg.resultColor(), dlg.resultLineWidth(), *Doc->a_Nodes, *Doc->a_Wires);
+  }
+
+  QString name = dlg.resultName(), value = dlg.resultInitValue();
+  if (name.isEmpty() && value.isEmpty()) {
+    if (pe) ((Conductor*)pe)->dropLabel();
+  } else if (pe) {
+    // Rename in place, wherever in the net the label actually lives.
+    ((Conductor*)pe)->label()->setName(name);
+    ((Conductor*)pe)->label()->initValue = value;
+  } else {
+    // Nothing labeled anywhere on this net yet — create on the clicked element.
+    if (elem->Type == isNode) {
+      Node* n = (Node*)elem;
+      int xl = n->x() + 30, yl = n->y() - 30;
+      Doc->setOnGrid(xl, yl);
+      n->setName(name, value, xl, yl);
+    } else {
+      Wire* w = (Wire*)elem;
+      QPoint mid = (w->P1() + w->P2()) / 2;
+      int xl = mid.x() + 30, yl = mid.y() - 30;
+      Doc->setOnGrid(xl, yl);
+      w->setName(name, value, mid.x(), mid.y(), xl, yl);
+    }
   }
 
   Doc->setChanged(true, true);
