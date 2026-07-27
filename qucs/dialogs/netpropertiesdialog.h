@@ -50,9 +50,9 @@ private slots:
   /// @details It also updates the background color of the color-picking button
   void slotChooseColor();
 
-         /// @brief Set the default color of the net (Qt::darkBlue)
-         /// @details It also updates the background color of the color-picking button
-  void slotUseDefaultColor();
+  /// @brief Set the default style of the net (Qt::darkBlue + linewidth = 2)
+  /// @details It also updates the background color of the color-picking button
+  void slotUseDefaultStyle();
 
   void slotOk();
   void slotCancel();

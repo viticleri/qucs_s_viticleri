@@ -60,11 +60,6 @@ NetPropertiesDialog::NetPropertiesDialog(const QColor& initialColor, int initial
   connect(chooseColorBtn, &QPushButton::clicked, this, &NetPropertiesDialog::slotChooseColor);
   updateColorButtonBackground(netcolor);
   colorRow->addWidget(chooseColorBtn);
-
-  QPushButton *defaultBtn = new QPushButton(tr("Default"), this);
-  connect(defaultBtn, &QPushButton::clicked, this, &NetPropertiesDialog::slotUseDefaultColor);
-  colorRow->addWidget(defaultBtn);
-  colorRow->addStretch();
   styleLayout->addLayout(colorRow);
 
   QHBoxLayout *widthRow = new QHBoxLayout();
@@ -74,6 +69,11 @@ NetPropertiesDialog::NetPropertiesDialog(const QColor& initialColor, int initial
   m_widthSpin->setValue(initialLineWidth);
   connect(m_widthSpin, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int v){ m_lineWidth = v; });
   widthRow->addWidget(m_widthSpin);
+  widthRow->addStretch();
+
+  QPushButton *defaultBtn = new QPushButton(tr("Default Style"), this);
+  connect(defaultBtn, &QPushButton::clicked, this, &NetPropertiesDialog::slotUseDefaultStyle);
+  widthRow->addWidget(defaultBtn);
   widthRow->addStretch();
   styleLayout->addLayout(widthRow);
 
@@ -108,13 +108,19 @@ void NetPropertiesDialog::slotChooseColor()
   }
 }
 
-void NetPropertiesDialog::slotUseDefaultColor()
+void NetPropertiesDialog::slotUseDefaultStyle()
 {
   // Default color
   netcolor = Qt::darkBlue;
 
+  // Default linewidth
+  m_lineWidth = 2;
+
   // Update the background color of the color-picking button
   updateColorButtonBackground(netcolor);
+
+  // Update width sinbox
+  m_widthSpin->setValue(m_lineWidth);
 }
 
 
