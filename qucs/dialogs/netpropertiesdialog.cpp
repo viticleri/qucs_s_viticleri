@@ -24,7 +24,7 @@
 NetPropertiesDialog::NetPropertiesDialog(const QColor& initialColor, int initialLineWidth,
                                          const QString& initialName, const QString& initialValue,
                                          QWidget *parent)
-    : QDialog(parent), netcolor(initialColor), m_lineWidth(initialLineWidth) {
+    : QDialog(parent), m_netcolor(initialColor), m_lineWidth(initialLineWidth) {
 
   setWindowTitle(tr("Net Properties"));
 
@@ -58,7 +58,7 @@ NetPropertiesDialog::NetPropertiesDialog(const QColor& initialColor, int initial
 
   chooseColorBtn = new QPushButton();
   connect(chooseColorBtn, &QPushButton::clicked, this, &NetPropertiesDialog::slotChooseColor);
-  updateColorButtonBackground(netcolor);
+  updateColorButtonBackground(m_netcolor);
   colorRow->addWidget(chooseColorBtn);
   styleLayout->addLayout(colorRow);
 
@@ -94,30 +94,30 @@ void NetPropertiesDialog::slotChooseColor()
 {
   QColor initial_color;
 
-  if (netcolor.isValid()){
-    initial_color = netcolor;
+  if (m_netcolor.isValid()){
+    initial_color = m_netcolor;
   } else {
     // Default color
     initial_color = Qt::darkBlue;
   }
   QColor chosen = QColorDialog::getColor(initial_color, this, tr("Select Net Color"));
   if (chosen.isValid()) {
-    netcolor = chosen;
+    m_netcolor = chosen;
     // Update the background color of the color-picking button
-    updateColorButtonBackground(netcolor);
+    updateColorButtonBackground(m_netcolor);
   }
 }
 
 void NetPropertiesDialog::slotUseDefaultStyle()
 {
   // Default color
-  netcolor = Qt::darkBlue;
+  m_netcolor = Qt::darkBlue;
 
   // Default linewidth
   m_lineWidth = 2;
 
   // Update the background color of the color-picking button
-  updateColorButtonBackground(netcolor);
+  updateColorButtonBackground(m_netcolor);
 
   // Update width sinbox
   m_widthSpin->setValue(m_lineWidth);

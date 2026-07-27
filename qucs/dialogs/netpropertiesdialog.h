@@ -36,7 +36,7 @@ public:
 
          /// @brief Get the color of the wire
          /// @return QColor variable
-  QColor resultColor() const { return netcolor; }
+  QColor resultColor() const { return m_netcolor; }
 
          /// @brief Get the witdth of the wire
          /// @return int variable
@@ -59,19 +59,19 @@ private slots:
 
 private:
   /// Color of the net (wire or node)
-  QColor netcolor;
+  QColor m_netcolor;
 
-         /// Linewidth
+  /// Linewidth
   QSpinBox *m_widthSpin;
   int m_lineWidth;
 
-         /// Button for color piching
+  /// Button for color picking
   QPushButton *chooseColorBtn;
 
-         /// @brief Helper for setting the background color of the color-picking button
+  /// @brief Helper for setting the background color of the color-picking button
   void updateColorButtonBackground(QColor background_color);
 
-         /// Label
+  /// Label
   QLineEdit *NodeName, *InitValue;
   QRegularExpressionValidator *Validator1, *Validator2;
   QRegularExpression Expr1, Expr2;
