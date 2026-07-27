@@ -138,6 +138,14 @@ void NetPropertiesDialog::slotCancel()
 
 void NetPropertiesDialog::slotOk()
 {
+  // First check ensure that the user has entered a name for the label. That's mandatory.
+  QString name = NodeName->text().trimmed();
+  QString initialVoltage = InitValue->text().trimmed();
+
+  if (name.isEmpty() && !initialVoltage.isEmpty()) {
+    name = QString("Vstart_%1V").arg(initialVoltage);
+  }
+
   if ((QucsSettings.DefaultSimulator == spicecompat::simNgspice) ||
       (QucsSettings.DefaultSimulator == spicecompat::simSpiceOpus)) {
     QString nod = NodeName->text().trimmed();
@@ -149,7 +157,7 @@ void NetPropertiesDialog::slotOk()
       return;   // stay open — don't discard the color/width choice too
     }
   }
-  NodeName->setText(NodeName->text().trimmed());
-  InitValue->setText(InitValue->text().trimmed());
+  NodeName->setText(name);
+  InitValue->setText(initialVoltage);
   accept();
 }
