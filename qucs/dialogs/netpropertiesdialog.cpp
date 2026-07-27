@@ -34,19 +34,24 @@ NetPropertiesDialog::NetPropertiesDialog(const QColor& initialColor, int initial
 
   labelLayout->addWidget(new QLabel(tr("Name:"), this), 0, 0);
 
-  Expr1.setPattern("[a-zA-Z]([0-9a-zA-Z]|_(?!_))+\\!{0,1}");
-  Validator1 = new QRegularExpressionValidator(Expr1, this);
+  Expr_NetName.setPattern("[a-zA-Z]([0-9a-zA-Z]|_(?!_))+\\!{0,1}");
+  Validator_NetName = new QRegularExpressionValidator(Expr_NetName, this);
   NodeName = new QLineEdit(this);
   NodeName->setText(initialName);
-  NodeName->setValidator(Validator1);
+  NodeName->setValidator(Validator_NetName);
   labelLayout->addWidget(NodeName, 0, 1, 1, 2);
 
-  Expr2.setPattern("[^\"=]+");
-  Validator2 = new QRegularExpressionValidator(Expr2, this);
   labelLayout->addWidget(new QLabel(tr("Initial voltage:"), this), 1, 0);
   InitValue = new QLineEdit(this);
   InitValue->setText(initialValue);
-  InitValue->setValidator(Validator2);
+
+  // Set validator for the initial voltage: Ensure that's a number and handles suffixes
+  Expr_InitialVoltage.setPattern(
+      "^[+-]?(\\d+\\.?\\d*|\\.\\d+)([eE][+-]?\\d+)?(MEG|T|G|K|M|U|N|P|F)?$");
+  Expr_InitialVoltage.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+  Validator_InitialVoltage = new QRegularExpressionValidator(Expr_InitialVoltage, this);
+  InitValue->setValidator(Validator_InitialVoltage);
+  InitValue->setValidator(Validator_InitialVoltage);
   labelLayout->addWidget(InitValue, 1, 1, 1, 2);
 
   // --- Style group box ---

@@ -73,8 +73,17 @@ private:
 
   /// Label
   QLineEdit *NodeName, *InitValue;
-  QRegularExpressionValidator *Validator1, *Validator2;
-  QRegularExpression Expr1, Expr2;
+
+  // Net name validatos
+  // Ensure that the name is valid for SPICE
+  // It must start with a letter, no double underscores. Allows a "!" mark
+  QRegularExpressionValidator *Validator_NetName;
+  QRegularExpression Expr_NetName;
+
+  // Initial voltage validator
+  // The value must be a number and it must accept m, u, n, p suffixes
+  QRegularExpressionValidator *Validator_InitialVoltage;
+  QRegularExpression Expr_InitialVoltage;
 };
 
 #endif
