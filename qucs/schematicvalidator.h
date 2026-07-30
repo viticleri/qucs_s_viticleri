@@ -6,6 +6,9 @@
 #ifndef SCHEMATICVALIDATOR_H
 #define SCHEMATICVALIDATOR_H
 
+#include "wire.h"
+#include "node.h"
+
 #include <QString>
 #include <QVector>
 
@@ -61,6 +64,11 @@ private:
 
   /// @brief Simulation backends require a simulation block
   QVector<ValidationIssue> checkMissingSimulation() const;
+
+  /// @brief Check if the schematic contain wires with at least one endpoint open
+  /// @details Iterates over every wire in the schematic and inspects both of its endpoints (Port1 and Port2).
+  /// An endpoint is considered "open" when it is not shared with any other wire and no component pin is attached to it.
+  QVector<ValidationIssue> checkDanglingWires() const;
 
   /// @}
 };

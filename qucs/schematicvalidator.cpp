@@ -14,6 +14,7 @@ QVector<ValidationIssue> SchematicValidator::validate() const
   issues += checkFrequencySweepType();
   issues += checkMinimumPortsInSPSimulation();
   issues += checkMissingSimulation();
+  issues += checkDanglingWires();
 
   return issues;
 }
@@ -123,5 +124,69 @@ QVector<ValidationIssue> SchematicValidator::checkMissingSimulation() const
 
   issues.append(issue);
 
+  return issues;
+}
+
+QVector<ValidationIssue> SchematicValidator::checkDanglingWires() const
+{
+  QVector<ValidationIssue> issues;
+  // Inspect all wires
+  for (Wire *wire : sch->a_DocWires) {
+    Node *endpoint1 = wire->Port1;
+    Node *endpoint2 = wire->Port2;
+
+    bool endpoint1_isOpen = endpoint1->wires().size() <= 1
+                            && endpoint1->components().empty();
+    bool endpoint2_isOpen = endpoint2->wires().size() <= 1
+                            && endpoint2->components().empty();
+
+    if (endpoint1_isOpen && endpoint2_isOpen) {
+      // Both ends open: the wire is entirely disconnected
+      ValidationIssue issue;
+      issue.message = QObject::tr(
+                           "Wire is not connected to anything at either end (near (%1, %2) and (%3, %4)).")
+                           .arg(endpoint1->cx).arg(endpoint1->cy)
+                           .arg(endpoint2->cx).arg(endpoint2->cy);
+      issue.severity = 3; // Minor, but the user should review it. In many cases this will be something merely aesthetic, but
+      // it may happen that the user forgot to connect something
+      issue.suggestedFix = QObject::tr(
+          "Remove the wire.");
+      issues.append(issue);
+    }
+    else if (endpoint1_isOpen) {
+      // First end open
+      ValidationIssue issue;
+
+      QString message;
+      if (endpoint1->hasLabel()){
+        message = QObject::tr("Wire end at net '%1' is not connected to anything.").arg(endpoint1->Name);
+      } else {
+        message = QObject::tr("Wire has an unconnected end near (%1, %2).").arg(endpoint1->cx).arg(endpoint1->cy);
+      }
+
+      issue.message = message;
+      issue.severity = 3;
+      issue.suggestedFix = QObject::tr(
+          "Terminate the open end or remove the dangling wire.");
+      issues.append(issue);
+    }
+    else if (endpoint2_isOpen) {
+      // Second end open
+      ValidationIssue issue;
+
+      QString message;
+      if (endpoint2->hasLabel()){
+        message = QObject::tr("Wire end at net '%1' is not connected to anything.").arg(endpoint2->Name);
+      } else {
+        message = QObject::tr("Wire has an unconnected end near (%1, %2).").arg(endpoint2->cx).arg(endpoint2->cy);
+      }
+
+      issue.message = message;
+      issue.severity = 3;
+      issue.suggestedFix = QObject::tr(
+          "Terminate the open end or remove the dangling wire.");
+      issues.append(issue);
+    }
+  }
   return issues;
 }
