@@ -3860,12 +3860,12 @@ bool QucsApp::runPreSimulationChecks(QWidget *w, const QString &backend) {
   QDialogButtonBox *buttons = new QDialogButtonBox(&dlg);
 
   // Go back to the schematic and fix the issues
-  QPushButton *fixButton = buttons->addButton(tr("Fix Issues"), QDialogButtonBox::RejectRole);
+  QPushButton *fixButton = buttons->addButton(tr("Fix Issues"), QDialogButtonBox::AcceptRole);
   fixButton->setToolTip(tr("Go back to the schematic and fix the issues"));
   connect(fixButton, &QPushButton::clicked, &dlg, &QDialog::reject);
 
   // Simulate anyway
-  QPushButton *proceedButton = buttons->addButton(tr("Simulate Anyway"), QDialogButtonBox::AcceptRole);
+  QPushButton *proceedButton = buttons->addButton(tr("Simulate Anyway"), QDialogButtonBox::RejectRole);
   proceedButton->setToolTip(tr("Run the simulation"));
   connect(proceedButton, &QPushButton::clicked, &dlg, &QDialog::accept);
   layout->addWidget(buttons);
