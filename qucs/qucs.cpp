@@ -2710,8 +2710,8 @@ void QucsApp::slotSimulate(QWidget *w)
   QString backend = simulatorsCombobox->currentText().toLower();
 
   // Validate the schematic against that backend's known limitations before running the simulation.
-  // Schematic validation is skipped in "Tuning mode"
-  if (!TuningMode) {
+  // Schematic validation is skipped in "Tuning mode". It also needs to be enabled in the Settings panel.
+  if (!TuningMode && _settings::Get().item<bool>("EnableSchematicValidation")) {
     if (runPreSimulationChecks(w, backend))
       return;
   }

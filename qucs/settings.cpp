@@ -83,6 +83,7 @@ void settingsManager::initDefaults()
     m_Defaults["NgspiceCompatMode"] = spicecompat::NgspDefault;
     m_Defaults["AllowFlexibleWires"] = false;
     m_Defaults["AllowLayingWiresAnew"] = false;
+    m_Defaults["EnableSchematicValidation"] = true; // Pre-simulation schematic validation.
 }
 
 void settingsManager::initAliases()

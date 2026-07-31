@@ -158,13 +158,19 @@ QucsSettingsDialog::QucsSettingsDialog(QucsApp *parent)
     allowFlexibleWires = new QCheckBox(appSettingsTab);
     appSettingsGrid->addWidget(allowFlexibleWires, 8, 1);
 
+    appSettingsGrid->addWidget(new QLabel(tr("Validate schematic before simulating:"), appSettingsTab), 9, 0);
+    enableSchematicValidation = new QCheckBox(appSettingsTab);
+    enableSchematicValidation->setToolTip(tr(
+        "Check the schematic for common issues before running the simulation."));
+    appSettingsGrid->addWidget(enableSchematicValidation, 9, 1);
+
     t->addTab(appSettingsTab, tr("Settings"));
 
-    appSettingsGrid->addWidget(new QLabel(tr("Set custom shortcut:"), appSettingsTab), 9, 0);
+    appSettingsGrid->addWidget(new QLabel(tr("Set custom shortcut:"), appSettingsTab), 10, 0);
     ShortcutButton = new QPushButton(appSettingsTab);
     connect(ShortcutButton, SIGNAL(clicked()),
         parent, SLOT(slotShortcutDialog()));
-    appSettingsGrid->addWidget(ShortcutButton, 9, 1);
+    appSettingsGrid->addWidget(ShortcutButton, 10, 1);
 
     // ...........................................................
     // The appearance settings tab
@@ -544,6 +550,7 @@ QucsSettingsDialog::QucsSettingsDialog(QucsApp *parent)
     editorEdit->setText(QucsSettings.Editor);
     checkWiring->setChecked(QucsSettings.NodeWiring);
     allowFlexibleWires->setChecked(_settings::Get().item<bool>("AllowFlexibleWires"));
+    enableSchematicValidation->setChecked(_settings::Get().item<bool>("EnableSchematicValidation"));
 
     ShortcutButton->setText("Custom Shortcut");
 
@@ -770,6 +777,7 @@ void QucsSettingsDialog::slotApply()
     }
 
     _settings::Get().setItem("AllowFlexibleWires", allowFlexibleWires->isChecked());
+    _settings::Get().setItem("EnableSchematicValidation", enableSchematicValidation->isChecked());
 
     QucsSettings.FileTypes.clear();
     for (int row=0; row < fileTypesTableWidget->rowCount(); row++)
@@ -973,6 +981,7 @@ void QucsSettingsDialog::slotDefaultValues()
     editorEdit->setText(QucsSettings.BinDir + "qucs");
     checkWiring->setChecked(false);
     allowFlexibleWires->setChecked(_settings::Get().itemDefault<bool>("AllowFlexibleWires"));
+    enableSchematicValidation->setChecked(_settings::Get().itemDefault<bool>("EnableSchematicValidation"));
     checkLoadFromFutureVersions->setChecked(false);
     checkAntiAliasing->setChecked(false);
     checkTextAntiAliasing->setChecked(true);
