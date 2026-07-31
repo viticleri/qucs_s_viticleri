@@ -6,16 +6,83 @@
 #include "schematicvalidator.h"
 #include "schematic.h"
 #include "components/component.h"
+#include "components/subcircuit.h"
 
-QVector<ValidationIssue> SchematicValidator::validate() const
-{
+QVector<ValidationIssue> SchematicValidator::validate() const {
+  QSet<QString> visitedFiles;
+  return runAllChecks(visitedFiles);
+}
+
+
+QVector<ValidationIssue> SchematicValidator::runAllChecks(QSet<QString> &visitedFiles) const {
   QVector<ValidationIssue> issues;
 
+  // Top-level schematic checks. Not applicable to subcircuits
   issues += checkFrequencySweepType();
   issues += checkMinimumPortsInSPSimulation();
   issues += checkMissingSimulation();
+
+  // Structural checks: run at top-level and recursively inside every subcircuit.
+  issues += checkStructuralIssues(visitedFiles);
+
+  return issues;
+}
+
+
+QVector<ValidationIssue> SchematicValidator::checkStructuralIssues(QSet<QString> &visitedFiles) const {
+  QVector<ValidationIssue> issues;
+
   issues += checkDanglingWires();
   issues += checkUnconnectedPorts();
+  issues += checkSubcircuits(visitedFiles);
+
+  return issues;
+}
+
+
+QVector<ValidationIssue> SchematicValidator::checkSubcircuits(QSet<QString> &visitedFiles) const{
+  QVector<ValidationIssue> issues;
+
+  for (Component *component : sch->a_DocComps) {
+    if (!component->isActive || component->Model != "Sub") {
+      // Discard all but subcircuits
+      continue;
+    }
+
+    Subcircuit *subcirc = static_cast<Subcircuit*>(component);
+    QString file = subcirc->getSubcircuitFile();
+
+    if (file.isEmpty() || visitedFiles.contains(file)) {
+      // Skip already inspected subcircuits
+      continue;
+    }
+    visitedFiles.insert(file);
+
+    Schematic *nested = new Schematic(nullptr, file);
+    if (!nested->loadDocument()) {
+      ValidationIssue issue;
+      issue.message = QObject::tr("Cannot load subcircuit file '%1'.").arg(file);
+      issue.severity = 1; // Critical: Simulation won't run if the subckt is missing
+      issue.suggestedFix = QObject::tr(
+          "Check that the subcircuit file exists and is a valid schematic.");
+      issues.append(issue);
+      delete nested;
+      continue;
+    }
+
+    // Check subcircuit
+    SchematicValidator nestedValidator;
+    nestedValidator.setSchematic(nested);
+    nestedValidator.setSimulationBackend(backend);
+    QVector<ValidationIssue> SubCktIssues = nestedValidator.checkStructuralIssues(visitedFiles);
+
+    for (ValidationIssue issue : SubCktIssues) {
+      issue.message = QObject::tr("[in subcircuit '%1'] %2").arg(file, issue.message);
+      issues.append(issue);
+    }
+
+    delete nested;
+  }
 
   return issues;
 }

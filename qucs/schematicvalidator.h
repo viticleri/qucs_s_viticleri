@@ -11,6 +11,7 @@
 
 #include <QString>
 #include <QVector>
+#include <QSet>
 
 class Schematic;
 
@@ -53,6 +54,28 @@ private:
 
   Schematic *sch;
   QString backend; /// Simulation backend
+
+
+  /// @brief Runs the full ruleset (simulation-control + structural checks)
+  /// against the top-level schematic. Simulation-control checks are not
+  /// re-run for nested subcircuits
+  /// @see checkStructuralIssues().
+  QVector<ValidationIssue> runAllChecks(QSet<QString> &visitedFiles) const;
+
+  /// @brief Runs only the checks that are meaningful regardless of nesting
+  /// depth (wiring/connectivity), plus recursion into subcircuits.
+  /// @param visitedFiles Shared cache of subcircuit files already processed.
+  QVector<ValidationIssue> checkStructuralIssues(QSet<QString> &visitedFiles) const;
+
+  /// @brief Recursively validates every subcircuit instance in the schematic.
+  /// @details For each unique, not-yet-visited subcircuit file, loads it
+  /// headlessly (mirroring Schematic::throughAllComps: null QucsApp*,
+  /// loadDocument() rather than load(), to avoid GUI side effects) and
+  /// re-runs the full ruleset against it. Resulting issues are prefixed
+  /// with the subcircuit file name so the user knows where the problem is.
+  /// @param visitedFiles Shared cache of subcircuit files already processed.
+  /// @return A list of ValidationIssue entries found inside subcircuits.
+  QVector<ValidationIssue> checkSubcircuits(QSet<QString> &visitedFiles) const;
 
   /// Checks @{
 
