@@ -3806,12 +3806,12 @@ bool QucsApp::runPreSimulationChecks(QWidget *w, const QString &backend)
     return false;
 
   QDialog dlg(this);
-  dlg.setWindowTitle(tr("Cannot start simulation"));
+  dlg.setWindowTitle(tr("Issues found"));
 
   QVBoxLayout *layout = new QVBoxLayout(&dlg);
 
   QLabel *header = new QLabel(
-      tr("The schematic has %1 issue(s) that must be fixed before simulating:")
+      tr("The schematic has %1 issue(s) that should be fixed before simulating:")
           .arg(issues.size()), &dlg);
   header->setWordWrap(true);
   layout->addWidget(header);
@@ -3856,13 +3856,27 @@ bool QucsApp::runPreSimulationChecks(QWidget *w, const QString &backend)
   textArea->setHtml(html);
   layout->addWidget(textArea);
 
-  QDialogButtonBox *buttons = new QDialogButtonBox(QDialogButtonBox::Ok, &dlg);
-  connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+  QDialogButtonBox *buttons = new QDialogButtonBox(&dlg);
+
+  // Go back to the schematic and fix the issues
+  QPushButton *fixButton = buttons->addButton(tr("Fix Issues"), QDialogButtonBox::RejectRole);
+  fixButton->setToolTip(tr("Go back to the schematic and fix the issues"));
+  connect(fixButton, &QPushButton::clicked, &dlg, &QDialog::reject);
+
+  // Simulate anyway
+  QPushButton *proceedButton = buttons->addButton(tr("Simulate Anyway"), QDialogButtonBox::AcceptRole);
+  proceedButton->setToolTip(tr("Run the simulation"));
+  connect(proceedButton, &QPushButton::clicked, &dlg, &QDialog::accept);
   layout->addWidget(buttons);
 
   dlg.resize(480, 280);
-  dlg.exec();
-  return true;
+  int result = dlg.exec();
+
+  if (result == QDialog::Accepted) {
+    return false;
+  } else {
+    return true;
+  }
 }
 
 
