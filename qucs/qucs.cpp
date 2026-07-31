@@ -2709,10 +2709,12 @@ void QucsApp::slotSimulate(QWidget *w)
   // Determine which backend will actually run this simulation
   QString backend = simulatorsCombobox->currentText().toLower();
 
-  // Validate the schematic against that backend's known limitations
-  // before running the simulation
-  if (runPreSimulationChecks(w, backend))
-    return;
+  // Validate the schematic against that backend's known limitations before running the simulation.
+  // Schematic validation is skipped in "Tuning mode"
+  if (!TuningMode) {
+    if (runPreSimulationChecks(w, backend))
+      return;
+  }
 
   if (QucsSettings.DefaultSimulator!=spicecompat::simQucsator && !isDigital) {
       slotSimulateWithSpice();
@@ -3793,8 +3795,7 @@ void QucsApp::slotSimulateWithSpice()
     }
 }
 
-bool QucsApp::runPreSimulationChecks(QWidget *w, const QString &backend)
-{
+bool QucsApp::runPreSimulationChecks(QWidget *w, const QString &backend) {
   Schematic *sch = qobject_cast<Schematic*>(w);
   if (!sch)
     return false; // nothing to check on non-schematic documents
