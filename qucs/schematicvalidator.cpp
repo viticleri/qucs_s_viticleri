@@ -15,6 +15,7 @@ QVector<ValidationIssue> SchematicValidator::validate() const
   issues += checkMinimumPortsInSPSimulation();
   issues += checkMissingSimulation();
   issues += checkDanglingWires();
+  issues += checkUnconnectedPorts();
 
   return issues;
 }
@@ -189,4 +190,63 @@ QVector<ValidationIssue> SchematicValidator::checkDanglingWires() const
     }
   }
   return issues;
+}
+
+QVector<ValidationIssue> SchematicValidator::checkUnconnectedPorts() const
+{
+  QVector<ValidationIssue> issues;
+  for (Component *component : sch->a_DocComps) {
+    // Iterate over each component in the schematic
+    if (!component->isActive) {
+      // Discard deactivated components
+      continue;
+    }
+    for (Port *port : std::as_const(component->Ports)) {
+      // For each port, check if the ports' net reaches something. Otherwise, report issue
+      Node *node = port->Connection;
+      bool isFloating = !node || !netReachesOtherComponent(node, component);
+      if (isFloating) {
+        ValidationIssue issue;
+        issue.message = QObject::tr("Port of %1 is not connected to anything.")
+                                 .arg(component->Name);
+        issue.severity = 2; // Warning. Simulation may run (e.g. 1-port S-parameter ngspice require one dangling port), but the user must check this.
+        issue.suggestedFix = QObject::tr(
+            "Connect this pin to the intended net, or check for a typo in the net label.");
+        issues.append(issue);
+      }
+    }
+  }
+  return issues;
+}
+
+bool SchematicValidator::netReachesOtherComponent(Node *node, Component *owner) const {
+  QSet<Node*> visited; // Nodes already visited during the traversal, to avoid revisiting again.
+  QVector<Node*> stack; // Nodes still to be explored
+  stack.push_back(node);
+
+  while (!stack.isEmpty()) {
+    Node *n = stack.takeLast();
+
+    if (!n || visited.contains(n)) {
+      // Skip null nodes and nodes visited
+      continue;
+    }
+    visited.insert(n);
+
+    for (Component *c : n->components()) {
+      // Check every component attached to this node.
+      if (c != owner)
+        return true;
+    }
+
+    // Follow every wire touching this node to the node on its other end, and queue it up for exploration,
+    for (Wire *w : n->wires()) {
+      Node *other = (w->Port1 == n) ? w->Port2 : w->Port1;
+      if (other && !visited.contains(other))
+        stack.push_back(other);
+    }
+  }
+
+  // Explored the entire net reachable from 'node' and found no component other than 'owner', so the net is effectively dangling.
+  return false;
 }
