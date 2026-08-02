@@ -6,14 +6,14 @@
 #ifndef SCHEMATICVALIDATOR_H
 #define SCHEMATICVALIDATOR_H
 
-#include "wire.h"
-#include "node.h"
-
 #include <QString>
 #include <QVector>
 #include <QSet>
 
 class Schematic;
+class Node;
+class Wire;
+class Component;
 
 /// @brief A single problem found in a schematic
 /// @param message Human-readable description for the user

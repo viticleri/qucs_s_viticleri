@@ -5,6 +5,8 @@
 
 #include "schematicvalidator.h"
 #include "schematic.h"
+#include "node.h"
+#include "wire.h"
 #include "components/component.h"
 #include "components/subcircuit.h"
 
