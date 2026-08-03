@@ -79,7 +79,7 @@ QVector<ValidationIssue> SchematicValidator::checkSubcircuits(QSet<QString> &vis
     nestedValidator.setSimulationBackend(backend);
     QVector<ValidationIssue> SubCktIssues = nestedValidator.checkStructuralIssues(visitedFiles);
 
-    for (ValidationIssue issue : SubCktIssues) {
+    for (ValidationIssue issue : std::as_const(SubCktIssues)) {
       issue.message = QObject::tr("[in subcircuit '%1'] %2").arg(file, issue.message);
       issues.append(issue);
     }
