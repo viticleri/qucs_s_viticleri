@@ -186,8 +186,11 @@ public:
     /// @brief Always prefixes the dataset with the simulation label.
     QCheckBox *alwaysPrefixDataset;
 
-    /// @brief Enables pre-simulation schematic validation checks
+    /// @brief Enables pre-simulation schematic validation checks.
     QCheckBox *enableSchematicValidation;
+
+    /// @brief Enables checking the schematic before saving it.
+    QCheckBox *validateOnSave;
 
     /// @brief Selects the application language.
     QComboBox *LanguageCombo;

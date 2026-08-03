@@ -1855,6 +1855,13 @@ bool QucsApp::saveFile(QucsDoc *Doc)
     updatePortNumber(Doc, Result);
   }
   slotUpdateTreeview();
+
+  // Schematic check
+  if (_settings::Get().item<bool>("ValidateOnSave")){
+    QWidget *w = DocumentTab->currentWidget();
+    runSchematicChecks(w, false);
+  }
+
   return true;
 }
 
@@ -2706,13 +2713,10 @@ void QucsApp::slotSimulate(QWidget *w)
       }
   }
 
-  // Determine which backend will actually run this simulation
-  QString backend = simulatorsCombobox->currentText().toLower();
-
   // Validate the schematic against that backend's known limitations before running the simulation.
   // Schematic validation is skipped in "Tuning mode". It also needs to be enabled in the Settings panel.
   if (!TuningMode && _settings::Get().item<bool>("EnableSchematicValidation")) {
-    if (runPreSimulationChecks(w, backend))
+    if (runSchematicChecks(w, true))
       return;
   }
 
@@ -3795,10 +3799,25 @@ void QucsApp::slotSimulateWithSpice()
     }
 }
 
-bool QucsApp::runPreSimulationChecks(QWidget *w, const QString &backend) {
+bool QucsApp::runSchematicChecks(QWidget *w, bool isPreSimulation)
+{
   Schematic *sch = qobject_cast<Schematic*>(w);
-  if (!sch)
-    return false; // nothing to check on non-schematic documents
+  if (!sch) {
+    // Nothing to check unless the document is an schematic
+    return false;
+  }
+
+  // Get the backend simulator
+  QString backend = simulatorsCombobox->currentText().toLower();
+
+  if (isPreSimulation && TuningMode) {
+    // Skip validation in tuning mode
+    return false;
+  }
+
+  const QString settingKey = isPreSimulation ? "EnableSchematicValidation" : "ValidateOnSave";
+  if (!_settings::Get().item<bool>(settingKey))
+    return false;
 
   a_validator.setSimulationBackend(backend);
   a_validator.setSchematic(sch);
@@ -3807,49 +3826,38 @@ bool QucsApp::runPreSimulationChecks(QWidget *w, const QString &backend) {
     return false;
 
   QDialog dlg(this);
-  dlg.setWindowTitle(tr("Issues found"));
-
+  dlg.setWindowTitle(isPreSimulation ? tr("Issues found") : tr("Schematic issues found"));
   QVBoxLayout *layout = new QVBoxLayout(&dlg);
-
-  QLabel *header = new QLabel(
-      tr("The schematic has %1 issue(s) that should be fixed before simulating:")
-          .arg(issues.size()), &dlg);
+  QLabel *header = new QLabel(tr("The schematic contains %1 issue(s)").arg(issues.size()), &dlg);
   header->setWordWrap(true);
   layout->addWidget(header);
 
   QTextEdit *textArea = new QTextEdit(&dlg);
   textArea->setReadOnly(true);
-
   QString html;
   for (int i = 0; i < issues.size(); ++i) {
     const ValidationIssue &issue = issues[i];
-
     // Severity formatting
     QColor severityColor;
     QString severity;
     switch (issue.severity){
-      case 1: // Critical
-        severityColor = Qt::red;
-        severity = QString("Critical");
-        break;
-
-      case 2: // Warning
-        severityColor = Qt::darkYellow;
-        severity = QString("Warning");
-        break;
-
-      case 3: // Minor
-        severityColor = Qt::blue;
-        severity = QString("Minor");
-        break;
+    case 1: // Critical
+      severityColor = Qt::red;
+      severity = QString("Critical");
+      break;
+    case 2: // Warning
+      severityColor = Qt::darkYellow;
+      severity = QString("Warning");
+      break;
+    case 3: // Minor
+      severityColor = Qt::blue;
+      severity = QString("Minor");
+      break;
     }
-
-    // Build HTML text
-    html += QString("<p><b>%1 #%2 - %3 [<span style='color:%4'>%5</span>]</b>"
-                    "<br><i>%6</i><br><b>Suggested fix</b>: %7</p>")
+    html += QString("<p><b>%1 #%2 [<span style='color:%3'>%4</span>]</b>"
+                    "<br><i>%5</i><br><b>Suggested fix</b>: %6</p>")
                 .arg(tr("Issue"))
                 .arg(i + 1)
-                .arg(issue.title.toHtmlEscaped())
                 .arg(severityColor.name())
                 .arg(severity)
                 .arg(issue.message.toHtmlEscaped())
@@ -3859,26 +3867,31 @@ bool QucsApp::runPreSimulationChecks(QWidget *w, const QString &backend) {
   layout->addWidget(textArea);
 
   QDialogButtonBox *buttons = new QDialogButtonBox(&dlg);
+  if (isPreSimulation) {
+    // Go back to the schematic and fix the issues
+    QPushButton *fixButton = buttons->addButton(tr("Ok"), QDialogButtonBox::AcceptRole);
+    fixButton->setToolTip(tr("Go back to the schematic and fix the issues"));
+    connect(fixButton, &QPushButton::clicked, &dlg, &QDialog::reject);
 
-  // Go back to the schematic and fix the issues
-  QPushButton *fixButton = buttons->addButton(tr("Ok"), QDialogButtonBox::AcceptRole);
-  fixButton->setToolTip(tr("Go back to the schematic and fix the issues"));
-  connect(fixButton, &QPushButton::clicked, &dlg, &QDialog::reject);
-
-  // Simulate anyway
-  QPushButton *proceedButton = buttons->addButton(tr("Simulate Anyway"), QDialogButtonBox::RejectRole);
-  proceedButton->setToolTip(tr("Run the simulation"));
-  connect(proceedButton, &QPushButton::clicked, &dlg, &QDialog::accept);
+    // Simulate anyway
+    QPushButton *proceedButton = buttons->addButton(tr("Simulate Anyway"), QDialogButtonBox::RejectRole);
+    proceedButton->setToolTip(tr("Run the simulation"));
+    connect(proceedButton, &QPushButton::clicked, &dlg, &QDialog::accept);
+  } else {
+    // The file is saved
+    QPushButton *okButton = buttons->addButton(tr("OK"), QDialogButtonBox::AcceptRole);
+    connect(okButton, &QPushButton::clicked, &dlg, &QDialog::accept);
+  }
   layout->addWidget(buttons);
 
   dlg.resize(480, 280);
   int result = dlg.exec();
 
-  if (result == QDialog::Accepted) {
+  if (!isPreSimulation) {
     return false;
-  } else {
-    return true;
   }
+
+  return result != QDialog::Accepted; // true = block simulation
 }
 
 

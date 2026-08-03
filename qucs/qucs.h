@@ -210,10 +210,11 @@ public slots:
 
   /// @brief Validate the schematic before simulation.
   /// @param w Schematic object
-  /// @param backend Backend simulator (ngspice, Xyce, qucsator-RF)
+  /// @param isPresimulation Flag to indicate if the "Simulate anyway" button must be added
   /// @return 'True' No issues detected.
   ///         'False' There are issues to solve before simulation
-  bool runPreSimulationChecks(QWidget *w, const QString &backend);
+  bool runSchematicChecks(QWidget *w, bool isPreSimulation);
+
   void slotAbortTuningSimulation();
   void slotTune(bool checked);
 
