@@ -1176,9 +1176,7 @@ void DiagramDialog::slotTakeVar(QTableWidgetItem *Item) {
     g->Thick = thicknessSpin->value();
     QColor selectedColor(
         DefaultColors[GraphList->rowCount() % NumDefaultColors]);
-    QString stylesheet = QStringLiteral("QPushButton {background-color: %1};")
-                             .arg(selectedColor.name());
-    ColorButt->setStyleSheet(stylesheet);
+
     misc::setPickerColor(ColorButt, selectedColor);
     if (g->Var.right(3) == ".Vb")
       if (PropertyBox->count() >= GRAPHSTYLE_ARROW)
@@ -1193,11 +1191,13 @@ void DiagramDialog::slotTakeVar(QTableWidgetItem *Item) {
       g->yAxisNo = 1;
     }
     Label3->setEnabled(true);
-    ColorButt->setEnabled(true);
 
     // Gradient
     g->GradientEnabled = GradientCheck->isChecked();
+    ColorButt->setEnabled(!g->GradientEnabled);
     GradientCheck->setEnabled(true);
+    ColorButt->setStyleSheet(colorButtStyleSheet(g->GradientEnabled, selectedColor));
+    ColorButt->setEnabled(!g->GradientEnabled);
   } else if (Diag->Name == "Tab") { // Changed from 'else' to 'else if'
     if (precisionSpin) {            // Add null check
       g->Precision = precisionSpin->value();
@@ -1275,9 +1275,6 @@ void DiagramDialog::SelectGraph(Graph *g) {
   if (Diag->Name != "Tab") {
     if (Diag->Name != "Truth") {
       thicknessSpin->setValue(g->Thick);
-      QString stylesheet = QStringLiteral("QPushButton {background-color: %1};")
-                               .arg(g->Color.name());
-      ColorButt->setStyleSheet(stylesheet);
       misc::setPickerColor(ColorButt, g->Color);
       PropertyBox->setCurrentIndex(g->Style);
       if (yAxisBox) {
@@ -1285,15 +1282,17 @@ void DiagramDialog::SelectGraph(Graph *g) {
         yAxisBox->setEnabled(true);
         Label4->setEnabled(true);
       }
-
       Label3->setEnabled(true);
-      ColorButt->setEnabled(true);
 
       // Gradient
       GradientCheck->blockSignals(true);
       GradientCheck->setChecked(g->GradientEnabled);
       GradientCheck->blockSignals(false);
       GradientCheck->setEnabled(true);
+      ColorButt->setEnabled(!g->GradientEnabled);
+
+      ColorButt->setStyleSheet(colorButtStyleSheet(g->GradientEnabled, g->Color));
+      ColorButt->setEnabled(!g->GradientEnabled);
     }
   } else {
     precisionSpin->setValue(g->Precision);
@@ -2315,11 +2314,29 @@ void DiagramDialog::updateGraphListItem(int row) {
 }
 
 
+// Returns the stylesheet for the color-swatch button: either the plain
+// solid trace color, or a blue-to-red gradient preview when gradient
+// (sweep-value) coloring is enabled for the graph.
+QString DiagramDialog::colorButtStyleSheet(bool gradientEnabled, const QColor& solid) const {
+  if (gradientEnabled) {
+    return QStringLiteral(
+        "QPushButton {background-color: qlineargradient("
+        "x1:0, y1:0, x2:1, y2:0, stop:0 blue, stop:1 red);}");
+  }
+  return QStringLiteral("QPushButton {background-color: %1};").arg(solid.name());
+}
+
 void DiagramDialog::slotToggleGradient(int state) {
   bool on = (state == Qt::Checked);
+  ColorButt->setEnabled(!on);
+
   int i = GraphList->currentRow();
   if (i < 0) return;
   Graphs.at(i)->GradientEnabled = on;
+
+  ColorButt->setStyleSheet(colorButtStyleSheet(on, Graphs.at(i)->Color));
+  ColorButt->setEnabled(!on);
+
   changed = true;
   toTake = false;
 }

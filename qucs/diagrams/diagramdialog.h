@@ -135,6 +135,7 @@ protected slots:
 private:
   void SelectGraph(Graph*);
   void updateXVar();
+  QString colorButtStyleSheet(bool gradientEnabled, const QColor& solid) const;
   ///
   /// \brief Updates the content of the graph list to see the trace name along with the trace properties
   /// \param row: Number of the row to update
