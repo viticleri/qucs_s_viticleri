@@ -169,6 +169,7 @@ DiagramDialog::DiagramDialog(Diagram *d, QWidget *parent, Graph *currentGraph)
   precisionSpin = 0;
   precisionLabel = 0;
   ColorButt = 0;
+  GradientCheck = 0;
   hideInvisible = 0;
   rotationX = rotationY = rotationZ = 0;
 
@@ -284,6 +285,18 @@ DiagramDialog::DiagramDialog(Diagram *d, QWidget *parent, Graph *currentGraph)
       connect(yAxisBox, QOverload<int>::of(&QComboBox::activated), this,
               &DiagramDialog::slotSetYAxis);
     }
+
+    // Gradient
+    QWidget *Box2c = new QWidget();
+    QHBoxLayout *Box2cLayout = new QHBoxLayout();
+    Box2c->setLayout(Box2cLayout);
+    InputGroupLayout->addWidget(Box2c);
+    Box2cLayout->setSpacing(5);
+
+    GradientCheck = new QCheckBox(tr("Color by sweep value"));
+    Box2cLayout->addWidget(GradientCheck);
+    GradientCheck->setEnabled(false);
+    connect(GradientCheck, &QCheckBox::stateChanged, this, &DiagramDialog::slotToggleGradient);
   }
 
   if (thicknessSpin) {
@@ -1183,6 +1196,10 @@ void DiagramDialog::slotTakeVar(QTableWidgetItem *Item) {
     }
     Label3->setEnabled(true);
     ColorButt->setEnabled(true);
+
+    // Gradient
+    g->GradientEnabled = GradientCheck->isChecked();
+    GradientCheck->setEnabled(true);
   } else if (Diag->Name == "Tab") { // Changed from 'else' to 'else if'
     if (precisionSpin) {            // Add null check
       g->Precision = precisionSpin->value();
@@ -1273,6 +1290,12 @@ void DiagramDialog::SelectGraph(Graph *g) {
 
       Label3->setEnabled(true);
       ColorButt->setEnabled(true);
+
+      // Gradient
+      GradientCheck->blockSignals(true);
+      GradientCheck->setChecked(g->GradientEnabled);
+      GradientCheck->blockSignals(false);
+      GradientCheck->setEnabled(true);
     }
   } else {
     precisionSpin->setValue(g->Precision);
@@ -1344,6 +1367,13 @@ void DiagramDialog::slotDeleteGraph() {
     }
     Label3->setEnabled(false);
     ColorButt->setEnabled(false);
+
+    // Gradient
+    GradientCheck->blockSignals(true);
+    GradientCheck->setChecked(false);
+    GradientCheck->blockSignals(false);
+    GradientCheck->setEnabled(false);
+
   } else {
     if (precisionSpin)
       precisionSpin->setValue(3);
@@ -1406,6 +1436,8 @@ void DiagramDialog::slotNewGraph() {
     } else if (Diag->Name == "Rect3D") {
       g->yAxisNo = 1;
     }
+
+    g->GradientEnabled = GradientCheck->isChecked();
   } else {
     g->Precision = precisionSpin->value();
     g->numMode = PropertyBox->currentIndex();
@@ -2205,7 +2237,15 @@ void DiagramDialog::updateGraphListItem(int row) {
       colorItem->setFlags(colorItem->flags() ^ Qt::ItemIsEditable);
       GraphList->setItem(row, 1, colorItem);
     }
-    colorItem->setBackground(QBrush(g->Color));
+    if (g->GradientEnabled) {
+      QLinearGradient grad(0, 0, 1, 0);
+      grad.setCoordinateMode(QGradient::ObjectBoundingMode);
+      grad.setColorAt(0.0, QColor(0x0000ff));
+      grad.setColorAt(1.0, QColor(0xff0000));
+      colorItem->setBackground(QBrush(grad));
+    } else {
+      colorItem->setBackground(QBrush(g->Color));
+    }
 
     // Column 2: Style
     QString styleName;
@@ -2274,4 +2314,14 @@ void DiagramDialog::updateGraphListItem(int row) {
       axisItem->setText(axisName);
     }
   }
+}
+
+
+void DiagramDialog::slotToggleGradient(int state) {
+  bool on = (state == Qt::Checked);
+  int i = GraphList->currentRow();
+  if (i < 0) return;
+  Graphs.at(i)->GradientEnabled = on;
+  changed = true;
+  toTake = false;
 }

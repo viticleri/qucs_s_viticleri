@@ -69,6 +69,7 @@ private slots:
   void slotCancel();
   void slotSetColor();
   void slotSetGridColor();
+  void slotToggleGradient(int);
   void slotResetToTake(const QString&);
   void slotSetNumMode(int);
   void slotSetGridBox(int);
@@ -128,7 +129,7 @@ private slots:
   void slotSetPrecision(int);
 
 protected slots:
-    void reject();
+    void reject() override;
 
 private:
   void SelectGraph(Graph*);
@@ -171,6 +172,7 @@ private:
   QLabel      *thicknessLabel, *precisionLabel;
   QComboBox   *PropertyBox, *GridStyleBox, *yAxisBox, *NotationBox;
   QPushButton *ColorButt, *GridColorButt;
+  QCheckBox   *GradientCheck;
   QSlider     *SliderRotX, *SliderRotY, *SliderRotZ;
   Cross3D     *DiagCross;
   bool changed, transfer, toTake;
