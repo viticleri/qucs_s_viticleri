@@ -63,6 +63,7 @@ QVector<ValidationIssue> SchematicValidator::checkSubcircuits(QSet<QString> &vis
     Schematic *nested = new Schematic(nullptr, file);
     if (!nested->loadDocument()) {
       ValidationIssue issue;
+      issue.title = QObject::tr("Missing subcircuit");
       issue.message = QObject::tr("Cannot load subcircuit file '%1'.").arg(file);
       issue.severity = 1; // Critical: Simulation won't run if the subckt is missing
       issue.suggestedFix = QObject::tr(
@@ -108,6 +109,9 @@ QVector<ValidationIssue> SchematicValidator::checkFrequencySweepType() const
     bool usesListSweep = sweepType && sweepType->Value == "list";
     if (usesListSweep) {
       ValidationIssue issue;
+
+      // Issue title
+      issue.title = QObject::tr("Wrong sweep");
 
       // Error message
       issue.message = QObject::tr("%1 uses a 'list' frequency sweep, which %2 does not support.")
@@ -158,6 +162,7 @@ QVector<ValidationIssue> SchematicValidator::checkMinimumPortsInSPSimulation() c
 
   if (acSourceCount < 2) {
     ValidationIssue issue;
+    issue.title = QObject::tr("Wrong S-parameter simulation setup");
     issue.message = QObject::tr(
                         "The schematic has %1 AC power source."
                         "ngspice requires at least 2 for S-parameter analysis.").arg(acSourceCount);
@@ -186,6 +191,7 @@ QVector<ValidationIssue> SchematicValidator::checkMissingSimulation() const
   }
 
   ValidationIssue issue;
+  issue.title = QObject::tr("Missing simulation block");
   issue.message = QObject::tr(
       "The schematic does not contain any active simulation block.");
   issue.severity = 1; // Critical - nothing to simulate
@@ -213,6 +219,7 @@ QVector<ValidationIssue> SchematicValidator::checkDanglingWires() const
     if (endpoint1_isOpen && endpoint2_isOpen) {
       // Both ends open: the wire is entirely disconnected
       ValidationIssue issue;
+      issue.title = QObject::tr("Dangling wire");
       issue.message = QObject::tr(
                            "Wire is not connected to anything at either end (near (%1, %2) and (%3, %4)).")
                            .arg(endpoint1->cx).arg(endpoint1->cy)
@@ -234,6 +241,7 @@ QVector<ValidationIssue> SchematicValidator::checkDanglingWires() const
         message = QObject::tr("Wire has an unconnected end near (%1, %2).").arg(endpoint1->cx).arg(endpoint1->cy);
       }
 
+      issue.title = QObject::tr("Dangling wire");
       issue.message = message;
       issue.severity = 3;
       issue.suggestedFix = QObject::tr(
@@ -243,6 +251,8 @@ QVector<ValidationIssue> SchematicValidator::checkDanglingWires() const
     else if (endpoint2_isOpen) {
       // Second end open
       ValidationIssue issue;
+
+      issue.title = QObject::tr("Dangling wire");
 
       QString message;
       if (endpoint2->hasLabel()){
@@ -276,6 +286,7 @@ QVector<ValidationIssue> SchematicValidator::checkUnconnectedPorts() const
       bool isFloating = !node || !netReachesOtherComponent(node, component);
       if (isFloating) {
         ValidationIssue issue;
+        issue.title = QObject::tr("Disconnected port");
         issue.message = QObject::tr("Port of %1 is not connected to anything.")
                                  .arg(component->Name);
         issue.severity = 2; // Warning. Simulation may run (e.g. 1-port S-parameter ngspice require one dangling port), but the user must check this.

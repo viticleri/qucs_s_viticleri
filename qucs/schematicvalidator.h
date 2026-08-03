@@ -16,6 +16,7 @@ class Wire;
 class Component;
 
 /// @brief A single problem found in a schematic
+/// @param title Type of issue
 /// @param message Human-readable description for the user
 /// @param severity Relevance of the issue
 ///        1: Critical - The simulation backend will fail
@@ -24,6 +25,7 @@ class Component;
 /// @param suggestedFix Message containing with a suggestion about how to solve the problem
 struct ValidationIssue
 {
+  QString title;
   QString message;
   QString suggestedFix;
   int severity;

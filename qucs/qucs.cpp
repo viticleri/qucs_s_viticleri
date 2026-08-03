@@ -3845,10 +3845,11 @@ bool QucsApp::runPreSimulationChecks(QWidget *w, const QString &backend) {
     }
 
     // Build HTML text
-    html += QString("<p><b>%1 #%2 (<span style='color:%3'>%4</span>)</b>"
-                    "<br><i>%5</i><br><b>Suggested fix</b>: %6</p>")
+    html += QString("<p><b>%1 #%2 - %3 [<span style='color:%4'>%5</span>]</b>"
+                    "<br><i>%6</i><br><b>Suggested fix</b>: %7</p>")
                 .arg(tr("Issue"))
                 .arg(i + 1)
+                .arg(issue.title.toHtmlEscaped())
                 .arg(severityColor.name())
                 .arg(severity)
                 .arg(issue.message.toHtmlEscaped())
