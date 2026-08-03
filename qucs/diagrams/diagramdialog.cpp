@@ -227,14 +227,24 @@ DiagramDialog::DiagramDialog(Diagram *d, QWidget *parent, Graph *currentGraph)
             &DiagramDialog::slotSetPrecision);
 
   } else if (Diag->Name != "Truth") {
-    Label1 = new QLabel(tr("Color:"));
-    Box2Layout->addWidget(Label1);
+
+    Label1 = new QLabel(tr("")); // No longer used for the color, but it may be reused by other plot types.
+
+    ColorGroupBox = new QGroupBox(tr("Color"));
+    QHBoxLayout *ColorGroupLayout = new QHBoxLayout();
+    ColorGroupBox->setLayout(ColorGroupLayout);
+    Box2Layout->addWidget(ColorGroupBox);
+
     ColorButt = new QPushButton("   ");
-    Box2Layout->addWidget(ColorButt);
+    ColorGroupLayout->addWidget(ColorButt);
     ColorButt->setMinimumWidth(50);
     ColorButt->setEnabled(false);
-    connect(ColorButt, &QPushButton::clicked, this,
-            &DiagramDialog::slotSetColor);
+    connect(ColorButt, &QPushButton::clicked, this, &DiagramDialog::slotSetColor);
+
+    GradientCheck = new QCheckBox(tr("Gradient"));
+    ColorGroupLayout->addWidget(GradientCheck);
+    GradientCheck->setEnabled(false);
+    connect(GradientCheck, &QCheckBox::stateChanged, this, &DiagramDialog::slotToggleGradient);
 
     Box2Layout->setStretchFactor(new QWidget(Box2),
                                  5); // stretchable placeholder
@@ -285,18 +295,6 @@ DiagramDialog::DiagramDialog(Diagram *d, QWidget *parent, Graph *currentGraph)
       connect(yAxisBox, QOverload<int>::of(&QComboBox::activated), this,
               &DiagramDialog::slotSetYAxis);
     }
-
-    // Gradient
-    QWidget *Box2c = new QWidget();
-    QHBoxLayout *Box2cLayout = new QHBoxLayout();
-    Box2c->setLayout(Box2cLayout);
-    InputGroupLayout->addWidget(Box2c);
-    Box2cLayout->setSpacing(5);
-
-    GradientCheck = new QCheckBox(tr("Color by sweep value"));
-    Box2cLayout->addWidget(GradientCheck);
-    GradientCheck->setEnabled(false);
-    connect(GradientCheck, &QCheckBox::stateChanged, this, &DiagramDialog::slotToggleGradient);
   }
 
   if (thicknessSpin) {

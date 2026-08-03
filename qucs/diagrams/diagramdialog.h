@@ -25,6 +25,7 @@
 
 #include <QDialog>
 #include <QSpinBox>
+#include <QGroupBox>
 #include <QRegularExpression>
 #include <QRegularExpressionValidator>
 #include <vector>
@@ -173,6 +174,7 @@ private:
   QComboBox   *PropertyBox, *GridStyleBox, *yAxisBox, *NotationBox;
   QPushButton *ColorButt, *GridColorButt;
   QCheckBox   *GradientCheck;
+  QGroupBox   *ColorGroupBox;
   QSlider     *SliderRotX, *SliderRotY, *SliderRotZ;
   Cross3D     *DiagCross;
   bool changed, transfer, toTake;
