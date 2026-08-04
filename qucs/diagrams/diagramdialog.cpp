@@ -2235,11 +2235,20 @@ void DiagramDialog::updateGraphListItem(int row) {
       GraphList->setItem(row, 1, colorItem);
     }
     if (g->GradientEnabled) {
-      QLinearGradient grad(0, 0, 1, 0);
-      grad.setCoordinateMode(QGradient::ObjectBoundingMode);
-      grad.setColorAt(0.0, QColor(0x0000ff));
-      grad.setColorAt(1.0, QColor(0xff0000));
-      colorItem->setBackground(QBrush(grad));
+      QPixmap swatch(48, 16);
+      swatch.fill(Qt::transparent);
+      QPainter swatchPainter(&swatch);
+      QLinearGradient grad(0, 0, swatch.width(), 0);
+      // Match interpolateColor() in graph.cpp: hue sweep 240° (blue) ->
+      // 0° (red), passing through cyan/green/yellow, not a flat RGB blend.
+      for (int i = 0; i <= 8; ++i) {
+        double t = i / 8.0;
+        int hue = static_cast<int>(std::lround(240.0 * (1.0 - t)));
+        grad.setColorAt(t, QColor::fromHsv(hue, 220, 220));
+      }
+      swatchPainter.fillRect(swatch.rect(), grad);
+      swatchPainter.end();
+      colorItem->setBackground(QBrush(swatch));
     } else {
       colorItem->setBackground(QBrush(g->Color));
     }
@@ -2319,9 +2328,18 @@ void DiagramDialog::updateGraphListItem(int row) {
 // (sweep-value) coloring is enabled for the graph.
 QString DiagramDialog::colorButtStyleSheet(bool gradientEnabled, const QColor& solid) const {
   if (gradientEnabled) {
+    // Match interpolateColor() in graph.cpp: hue sweep 240° (blue) ->
+    // 0° (red), passing through cyan/green/yellow, not a flat RGB blend.
+    QStringList stops;
+    for (int i = 0; i <= 8; ++i) {
+      double t = i / 8.0;
+      int hue = static_cast<int>(std::lround(240.0 * (1.0 - t)));
+      QColor c = QColor::fromHsv(hue, 220, 220);
+      stops << QStringLiteral("stop:%1 %2").arg(t).arg(c.name());
+    }
     return QStringLiteral(
-        "QPushButton {background-color: qlineargradient("
-        "x1:0, y1:0, x2:1, y2:0, stop:0 blue, stop:1 red);}");
+           "QPushButton {background-color: qlineargradient("
+           "x1:0, y1:0, x2:1, y2:0, %1);}").arg(stops.join(", "));
   }
   return QStringLiteral("QPushButton {background-color: %1};").arg(solid.name());
 }
@@ -2336,6 +2354,8 @@ void DiagramDialog::slotToggleGradient(int state) {
 
   ColorButt->setStyleSheet(colorButtStyleSheet(on, Graphs.at(i)->Color));
   ColorButt->setEnabled(!on);
+
+  updateGraphListItem(i);
 
   changed = true;
   toTake = false;
