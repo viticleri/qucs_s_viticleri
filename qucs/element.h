@@ -131,6 +131,20 @@ struct Image : DrawingPrimitive {
   /// @param painter Qt painter
   void draw(QPainter* painter) const override;
 
+  /// @brief Check if the content was decoded successfully
+  /// @return true Decoded successfully. false Decoding failed
+  bool isValid() const {
+    return (m_isSvg && m_svgRenderer && m_svgRenderer->isValid()) || !m_pixmap.isNull();
+  }
+
+  /// @brief Check if the decoded content is SVG (vector) or a  raster format.
+  /// @return true The data is a SVG image. false The data is raster.
+  bool isSvg() const { return m_isSvg; }
+
+  /// @brief Original size of the decoded asset (SVG's default size, or the raster pixmap's pixel size),
+  /// @return The original size, or an invalid/empty QSize if nothing was successfully decoded.
+  QSize nativeSize() const;
+
 private:
   /// @brief Find if the data is SVG or raster data
   /// @param data Image data

@@ -75,6 +75,14 @@ void Image::draw(QPainter* painter) const {
   }
 }
 
+QSize Image::nativeSize() const {
+  if (m_isSvg && m_svgRenderer && m_svgRenderer->isValid())
+    return m_svgRenderer->defaultSize();
+  if (!m_pixmap.isNull())
+    return m_pixmap.size();
+  return QSize();
+}
+
 } // namespace qucs
 
 void Text::draw(QPainter *painter) const {

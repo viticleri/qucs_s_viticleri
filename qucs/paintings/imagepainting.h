@@ -123,21 +123,20 @@ public:
 
 private:
   QString imagePath;
-  QPixmap image;
-  QPixmap originalImage;
 
   /// SVG @{
   // Raw bytes of the embedded asset exactly as read from disk/base64.
   // The image can't be stored as a QPixmap because for SVG the XML is needed
   QByteArray m_rawData;
 
-  // True when m_rawData holds SVG/XML content and should be rendered
-  // vectorially via m_svgRenderer instead of rasterized via QPixmap.
-  bool m_isSvg = false;
-  std::unique_ptr<QSvgRenderer> m_svgRenderer;
+
+  // Owns the decode + draw logic (SVG-vs-raster detection, QSvgRenderer
+  // or QPixmap)
+  std::unique_ptr<qucs::Image> m_renderable;
 
   /// @}
 
+  /// @brief Ensure the currently referenced external image (if any) is decoded into memory.
   void loadImage();
 
   /// @brief Load image data
@@ -147,9 +146,6 @@ private:
   /// loadImage() (reading an external file referenced by imagePath).
   /// This avoids duplicating the SVG-vs-raster branch logic.
   bool loadFromRawData(const QByteArray& data);
-
-  /// @brief Detects if data is XML (SVG) or raw image data
-  bool detectSvg(const QByteArray& data) const;
 
   enum DraggedCorner { TopLeft, TopRight, BottomLeft, BottomRight, NotSet };
   DraggedCorner m_draggedCorner = NotSet;
@@ -175,15 +171,27 @@ private:
   QLabel* m_statusLabel;
 
   // Dialog handler methods
+  /// @brief Slot: open a file picker for choosing an image/SVG source.
   void onBrowseClicked();
+
+  /// @brief Slot: reset the width/height fields in the properties dialog
+  /// to the original dimensions.
   void onResetClicked();
+
+  /// @brief Slot: handle toggling of the "Keep aspect ratio" checkbox
   void onAspectRatioToggled(bool checked);
+
+
+  /// @brief Slot: react to the image path field changing in the properties dialog
+  /// @param newPath The updated path text.
   void onPathChanged(const QString& newPath);
+
+  /// @brief Recompute the height field in the properties dialog from the current width field,
+  /// using the original aspect ratio
   void updateHeight();
 
   // Helper methods
   void updateAspectRatio();
-
 
   /// @brief Compute a height that preserves the cached aspect ratio for a given target width.
   /// @param newWidth  Proposed new width

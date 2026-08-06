@@ -30,25 +30,20 @@ void ImagePainting::paint(QPainter* painter) {
   loadImage();
   bool drewSomething = false;
 
-  if (!boundingRect().isEmpty()) {
-    if (m_isSvg && m_svgRenderer && m_svgRenderer->isValid()) {
-      painter->save();
-      painter->setPen(Qt::NoPen);
-      m_svgRenderer->render(painter, boundingRect());
-      painter->restore();
-      drewSomething = true;
-    } else {
-      QPixmap imageToPaint = originalImage.isNull() ? image : originalImage;
-      if (!imageToPaint.isNull()) {
-        painter->save();
-        painter->setPen(Qt::NoPen);
-        QPixmap scaledImage = imageToPaint.scaled(boundingRect().size(),
-                                                  Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        painter->drawPixmap(boundingRect().topLeft(), scaledImage);
-        painter->restore();
-        drewSomething = true;
-      }
-    }
+  if (!boundingRect().isEmpty() && m_renderable && m_renderable->isValid()) {
+    // Keep the delegate's box in sync with the current bounding rect,
+    // which may have changed since load (resize/rotate/move).
+    QRect br = boundingRect();
+    m_renderable->x = br.left();
+    m_renderable->y = br.top();
+    m_renderable->w = br.width();
+    m_renderable->h = br.height();
+
+    painter->save();
+    painter->setPen(Qt::NoPen);
+    m_renderable->draw(painter);
+    painter->restore();
+    drewSomething = true;
   }
 
   if (!drewSomething) {
@@ -74,33 +69,19 @@ void ImagePainting::paint(QPainter* painter) {
 bool ImagePainting::load(const QString& s) {
   QStringList parts = s.split(' ', Qt::SkipEmptyParts);
   if (parts.size() < 6) return false;
-
-  // Extract coordinates
   if (parts[0] != "ImagePainting") return false;
 
   bool ok;
-  x1 = parts[1].toInt(&ok);
-  if (!ok) return false;
+  x1 = parts[1].toInt(&ok); if (!ok) return false;
+  y1 = parts[2].toInt(&ok); if (!ok) return false;
+  x2 = parts[3].toInt(&ok); if (!ok) return false;
+  y2 = parts[4].toInt(&ok); if (!ok) return false;
 
-  y1 = parts[2].toInt(&ok);
-  if (!ok) return false;
-
-  x2 = parts[3].toInt(&ok);
-  if (!ok) return false;
-
-  y2 = parts[4].toInt(&ok);
-  if (!ok) return false;
-
-  // The base64 image data is in part 5
   QString imageData = parts[5];
 
-  // Clear previous image and path
-  image = QPixmap();
-  originalImage = QPixmap();
   imagePath.clear();
-
-  m_svgRenderer.reset();
-  m_isSvg = false;
+  m_renderable.reset();
+  m_rawData.clear();
 
   if (imageData.isEmpty()) return false;
   QByteArray byteArray = QByteArray::fromBase64(imageData.toUtf8());
@@ -110,15 +91,8 @@ bool ImagePainting::load(const QString& s) {
 }
 
 QString ImagePainting::save() {
-  QByteArray raw;
-
-  if (m_isSvg && !m_rawData.isEmpty()) {
-    raw = m_rawData;
-  } else if (!image.isNull()) {
-    QBuffer buffer(&raw);
-    buffer.open(QIODevice::WriteOnly);
-    image.save(&buffer, "PNG");
-  } else if (!imagePath.isEmpty()) {
+  QByteArray raw = m_rawData;
+  if (raw.isEmpty() && !imagePath.isEmpty()) {
     QFile f(imagePath);
     if (f.open(QIODevice::ReadOnly)) raw = f.readAll();
   }
@@ -196,11 +170,11 @@ bool ImagePainting::MousePressing(Schematic* sch) {
 
     if (!newPath.isEmpty()) {
       imagePath = newPath;
-      image = QPixmap();
-      originalImage = QPixmap();
+      m_renderable.reset();
+      m_rawData.clear();
       loadImage();
 
-      bool hasContent = !image.isNull() || (m_isSvg && m_svgRenderer && m_svgRenderer->isValid());
+      bool hasContent = m_renderable && m_renderable->isValid();
 
       if (hasContent) {
         x2 = x1 + getImageWidth();
@@ -329,7 +303,7 @@ bool ImagePainting::Dialog(QWidget* parent) {
 
   // Add status label to show if image is embedded or external
   m_statusLabel = new QLabel();
-  if (!image.isNull() && imagePath.isEmpty()) {
+  if (m_renderable && m_renderable->isValid() && imagePath.isEmpty()) {
     m_statusLabel->setText(QObject::tr("Image embedded in schematic"));
     m_statusLabel->setStyleSheet("color: green; font-style: italic;");
   } else if (!imagePath.isEmpty()) {
@@ -372,7 +346,7 @@ bool ImagePainting::Dialog(QWidget* parent) {
 
   // Reset to original button
   m_resetButton = new QPushButton(QObject::tr("Reset to original dimensions"));
-  m_resetButton->setEnabled(!image.isNull()); // Enable if image is loaded
+  m_resetButton->setEnabled(m_renderable && m_renderable->isValid()); // Enable if image is loaded
 
   dimensionsLayout->addLayout(widthLayout);
   dimensionsLayout->addLayout(heightLayout);
@@ -409,7 +383,7 @@ bool ImagePainting::Dialog(QWidget* parent) {
     imagePath = newPath;
     if (!imagePath.isEmpty()) {
       // Load new image from file path
-      image = QPixmap();
+      m_renderable.reset();
       loadImage();
       updateAspectRatio(); // Update aspect ratio when new image is loaded
     }
@@ -440,8 +414,7 @@ Element* ImagePainting::info(QString& Name, char* &BitmapFile, bool getNewOne) {
 }
 
 void ImagePainting::loadImage() {
-  if ((m_isSvg && m_svgRenderer) || (!image.isNull() && imagePath.isEmpty()))
-    return; // already have embedded data
+  if (m_renderable && m_renderable->isValid()) return;
   if (imagePath.isEmpty()) return;
 
   QFile f(imagePath);
@@ -451,51 +424,38 @@ void ImagePainting::loadImage() {
   }
   loadFromRawData(f.readAll());
 }
-
 // Override rotate methods to maintain functionality
 bool ImagePainting::rotate() noexcept {
   bool result = qucs::Rectangle::rotate();
-  if (result) {
-    // Clear cached image to force reload with new orientation
-    image = QPixmap();
-    // Invert aspect ratio when rotating
-    if (m_aspectRatio > 0) {
-      m_aspectRatio = 1.0 / m_aspectRatio;
-    }
-  }
+  if (result && m_aspectRatio > 0) m_aspectRatio = 1.0 / m_aspectRatio;
   return result;
 }
 
 bool ImagePainting::rotate(int xc, int yc) noexcept {
   bool result = qucs::Rectangle::rotate(xc, yc);
-  if (result) {
-    // Clear cached image to force reload with new orientation
-    image = QPixmap();
-    // Invert aspect ratio when rotating
-    if (m_aspectRatio > 0) {
-      m_aspectRatio = 1.0 / m_aspectRatio;
-    }
-  }
+  if (result && m_aspectRatio > 0) m_aspectRatio = 1.0 / m_aspectRatio;
   return result;
 }
 
 
 void ImagePainting::setImageFromPixmap(const QPixmap& pixmap) {
-  if (!pixmap.isNull()) {
-    image = pixmap;
-    originalImage = pixmap;
-    imagePath.clear(); // Clear path since this is embedded image data
-    updateAspectRatio(); // Update aspect ratio for new image
-  }
+  if (pixmap.isNull()) return;
+  imagePath.clear();
+
+  QByteArray raw;
+  QBuffer buffer(&raw);
+  buffer.open(QIODevice::WriteOnly);
+  pixmap.save(&buffer, "PNG");
+
+  loadFromRawData(raw);
 }
 
 void ImagePainting::setImageFromPath(const QString& path) {
-  if (!path.isEmpty()) {
-    imagePath = path;
-    image = QPixmap(); // Clear current image
-    originalImage = QPixmap(); // Clear original image
-    loadImage(); // Load from the new path (this will call updateAspectRatio)
-  }
+  if (path.isEmpty()) return;
+  imagePath = path;
+  m_renderable.reset();
+  m_rawData.clear();
+  loadImage();
 }
 
 void ImagePainting::setImageFromClipboard() {
@@ -529,21 +489,20 @@ void ImagePainting::onBrowseClicked() {
 }
 
 void ImagePainting::onResetClicked() {
-  QPixmap tempImage;
   QString currentPath = m_pathEdit->text();
 
-         // First try to use already loaded image
-  if (!image.isNull()) {
-    tempImage = image;
-  }
-  // Otherwise try to load from path
-  else if (!currentPath.isEmpty() && tempImage.load(currentPath)) {
-    image = tempImage;
+  // First try to use already loaded image
+  if (!(m_renderable && m_renderable->isValid()) && !currentPath.isEmpty()) {
+    // Nothing embedded yet — try loading from the path
+    QFile f(currentPath);
+    if (f.open(QIODevice::ReadOnly)) {
+      loadFromRawData(f.readAll());
+    }
   }
 
-  if (!tempImage.isNull()) {
-    m_widthEdit->setText(QString::number(tempImage.width()));
-    m_heightEdit->setText(QString::number(tempImage.height()));
+  if (m_renderable && m_renderable->isValid()) {
+    m_widthEdit->setText(QString::number(getImageWidth()));
+    m_heightEdit->setText(QString::number(getImageHeight()));
     m_resetButton->setEnabled(true);
   }
 }
@@ -557,33 +516,40 @@ void ImagePainting::onAspectRatioToggled(bool checked) {
 
 void ImagePainting::onPathChanged(const QString& newPath) {
   if (!newPath.isEmpty()) {
-    QPixmap tempImage;
-    if (tempImage.load(newPath)) {
-      m_resetButton->setEnabled(true);
-      if (m_aspectRatioCheck->isChecked()) {
-        updateHeight();
-      }
-    } else {
-      m_resetButton->setEnabled(false);
+    QFile f(newPath);
+    bool valid = false;
+    if (f.open(QIODevice::ReadOnly)) {
+      qucs::Image probe(0, 0, 1, 1, f.readAll());
+      valid = probe.isValid();
+    }
+
+    m_resetButton->setEnabled(valid);
+    if (valid && m_aspectRatioCheck->isChecked()) {
+      updateHeight();
     }
   } else {
-    m_resetButton->setEnabled(!image.isNull());
+    m_resetButton->setEnabled(m_renderable && m_renderable->isValid());
   }
 }
 
 void ImagePainting::updateHeight() {
   if (m_aspectRatioCheck && m_aspectRatioCheck->isChecked()) {
-    QPixmap currentImage = image;
+    QSize nativeSize;
 
-    // If no image loaded, try to load from path
-    if (currentImage.isNull() && m_pathEdit && !m_pathEdit->text().isEmpty()) {
-      currentImage.load(m_pathEdit->text());
+    if (m_renderable && m_renderable->isValid()) {
+      nativeSize = m_renderable->nativeSize();
+    } else if (m_pathEdit && !m_pathEdit->text().isEmpty()) {
+      QFile f(m_pathEdit->text());
+      if (f.open(QIODevice::ReadOnly)) {
+        qucs::Image probe(0, 0, 1, 1, f.readAll());
+        if (probe.isValid()) nativeSize = probe.nativeSize();
+      }
     }
 
-    if (!currentImage.isNull() && m_widthEdit && m_heightEdit) {
+    if (nativeSize.isValid() && m_widthEdit && m_heightEdit) {
       int width = m_widthEdit->text().toInt();
-      if (width > 0) {
-        double aspectRatio = (double)currentImage.height() / currentImage.width();
+      if (width > 0 && nativeSize.width() > 0) {
+        double aspectRatio = (double)nativeSize.height() / nativeSize.width();
         int height = qRound(width * aspectRatio);
         m_heightEdit->setText(QString::number(height));
       }
@@ -592,11 +558,11 @@ void ImagePainting::updateHeight() {
 }
 
 void ImagePainting::updateAspectRatio() {
-  QPixmap currentImage = originalImage.isNull() ? image : originalImage;
-  if (!currentImage.isNull()) {
-    m_aspectRatio = (double)currentImage.height() / currentImage.width();
+  if (m_renderable && m_renderable->isValid()) {
+    QSize sz = m_renderable->nativeSize();
+    m_aspectRatio = (sz.width() > 0) ? (double)sz.height() / sz.width() : 1.0;
   } else {
-    m_aspectRatio = 1.0; // Default square aspect ratio
+    m_aspectRatio = 1.0;
   }
 }
 
@@ -612,53 +578,31 @@ void ImagePainting::applyAspectRatioToResize(int& newWidth, int& newHeight) {
 
 // Needed to have the image size at schematic.cpp when drag and dropping
 int ImagePainting::getImageWidth() const {
-  if (m_isSvg && m_svgRenderer && m_svgRenderer->isValid()) {
-    int w = m_svgRenderer->defaultSize().width();
+  if (m_renderable && m_renderable->isValid()) {
+    int w = m_renderable->nativeSize().width();
     return w > 0 ? w : 100;
   }
-  if (!originalImage.isNull()) return originalImage.width();
-  if (!image.isNull()) return image.width();
   return 100;
 }
 
 int ImagePainting::getImageHeight() const {
-  if (m_isSvg && m_svgRenderer && m_svgRenderer->isValid()) {
-    int h = m_svgRenderer->defaultSize().height();
+  if (m_renderable && m_renderable->isValid()) {
+    int h = m_renderable->nativeSize().height();
     return h > 0 ? h : 100;
   }
-  if (!originalImage.isNull()) return originalImage.height();
-  if (!image.isNull()) return image.height();
   return 100;
 }
 
 
-bool ImagePainting::detectSvg(const QByteArray& data) const {
-  QByteArray head = data.left(512).trimmed();
-  return head.startsWith("<?xml") || head.startsWith("<svg") || head.contains("<svg");
-}
-
 bool ImagePainting::loadFromRawData(const QByteArray& data) {
   m_rawData = data;
-  m_svgRenderer.reset();
-  m_isSvg = false;
+  m_renderable = std::make_unique<qucs::Image>(x1, y1, x2 - x1, y2 - y1, data);
 
-  if (detectSvg(data)) {
-    auto renderer = std::make_unique<QSvgRenderer>(data);
-    if (renderer->isValid()) {
-      m_svgRenderer = std::move(renderer);
-      m_isSvg = true;
-      updateAspectRatio();
-      return true;
-    }
-    qWarning("Failed to parse SVG data");
+  if (!m_renderable->isValid()) {
+    qWarning("Failed to load image data");
+    m_renderable.reset();
     return false;
   }
-
-  if (image.loadFromData(data)) {
-    originalImage = image;
-    updateAspectRatio();
-    return true;
-  }
-  qWarning("Failed to load image from data");
-  return false;
+  updateAspectRatio();
+  return true;
 }
