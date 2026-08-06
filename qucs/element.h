@@ -38,6 +38,10 @@
 #define ELEMENT_H
 
 #include <QPen>
+#include <QPixmap>
+#include <QByteArray>
+#include <QSvgRenderer>
+#include <memory>
 #include <vector>
 
 class Node;
@@ -112,6 +116,29 @@ struct Polyline : DrawingPrimitive {
   void draw(QPainter* painter) const override;
   QPen penHint() const override { return pen; }
   QBrush brushHint() const override { return brush; }
+};
+
+/// @brief A drawing primitive that renders an embedded raster or SVG image as part of a component/schematic symbol.
+struct Image : DrawingPrimitive {
+  /// @brief Decodes rawData into either a QSvgRenderer (vector) or a QPixmap (raster) at construction time.
+  /// @param rawData is the decoded data. It can be a raster image format (PNG/JPEG/BMP/GIF/...) or SVG/XML text.
+  Image(double _x, double _y, double _w, double _h, const QByteArray& rawData);
+  virtual ~Image() {}
+
+  double x, y, w, h;
+
+  /// @brief Renders directly into the (x, y, w, h) box passed at construction.
+  /// @param painter Qt painter
+  void draw(QPainter* painter) const override;
+
+private:
+  /// @brief Find if the data is SVG or raster data
+  /// @param data Image data
+  static bool detectSvg(const QByteArray& data);
+
+  bool m_isSvg = false;
+  QPixmap m_pixmap;                             // Data from raster iamge
+  std::unique_ptr<QSvgRenderer> m_svgRenderer;  // Data from SVG
 };
 
 }

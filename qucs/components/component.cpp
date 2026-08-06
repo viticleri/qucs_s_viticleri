@@ -279,6 +279,10 @@ void Component::drawSymbol(QPainter* p) {
     for (qucs::DrawingPrimitive *text: std::as_const(Texts)) {
         draw_primitive(text, p);
     }
+
+    for (qucs::DrawingPrimitive *img: std::as_const(Images)) {
+      draw_primitive(img, p);
+    }
 }
 
 // paint device icon for left panel list
@@ -336,6 +340,11 @@ void Component::paintIcon(QPixmap* pixmap) {
         painter.setBrush(ellipse->brushHint());
         ellipse->draw(&painter);
     }
+
+    for (qucs::Image* img : std::as_const(Images)) {
+      img->draw(&painter);
+    }
+
     painter.restore();
 
     for (Text* pt : std::as_const(Texts)) {
@@ -1271,6 +1280,22 @@ int Component::analyseLine(const QString &Row, int numProps) {
         if (i2 + i4 < y1) y1 = i2 + i4;
         if (i2 + i4 > y2) y2 = i2 + i4;
         return 1;
+    } else if (s == "ImagePainting") {
+      if (!getIntegers(Row, &i1, &i2, &i3, &i4)) return -1;
+      double w = i3 - i1;
+      double h = i4 - i2;
+
+      QString imageData = Row.section(' ', 5).trimmed();
+      QByteArray raw = QByteArray::fromBase64(imageData.toUtf8());
+      if (raw.isEmpty()) return -1;
+
+      Images.append(new qucs::Image(i1, i2, w, h, raw));
+
+      if (i1 < x1) x1 = i1;  // keep track of component boundings
+      if (i3 > x2) x2 = i3;
+      if (i2 < y1) y1 = i2;
+      if (i4 > y2) y2 = i4;
+      return 1;
     } else if (s == "Text") {  // must be last in order to reuse "s" *********
         if (!getIntegers(Row, &i1, &i2, &i3, 0, &i4)) return -1;
         Color=misc::ColorFromString(Row.section(' ', 4, 4));
