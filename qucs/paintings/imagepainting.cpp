@@ -4,7 +4,7 @@
 /// @date August 04, 2026
 
 #include "imagepainting.h"
-#include "filldialog.h"
+#include "SVGGalleryDialog.h" // Image templates
 #include "misc.h"
 #include "schematic.h"
 
@@ -300,6 +300,7 @@ bool ImagePainting::Dialog(QWidget* parent) {
   auto* pathLabel = new QLabel(QObject::tr("Image Path:"));
   m_pathEdit = new QLineEdit(imagePath);
   auto* browseButton = new QPushButton(QObject::tr("Browse..."));
+  auto* galleryButton = new QPushButton(QObject::tr("Gallery..."));
 
   // Add status label to show if image is embedded or external
   m_statusLabel = new QLabel();
@@ -317,9 +318,13 @@ bool ImagePainting::Dialog(QWidget* parent) {
   // Connect browse button
   QObject::connect(browseButton, &QPushButton::clicked, this, &ImagePainting::onBrowseClicked);
 
+  // Gallery
+  QObject::connect(galleryButton, &QPushButton::clicked, this, &ImagePainting::onGalleryClicked);
+
   imageLayout->addWidget(pathLabel);
   imageLayout->addWidget(m_pathEdit);
   imageLayout->addWidget(browseButton);
+  imageLayout->addWidget(galleryButton);
 
   // Add dimensions UI
   auto* dimensionsLayout = new QVBoxLayout;
@@ -605,4 +610,19 @@ bool ImagePainting::loadFromRawData(const QByteArray& data) {
   }
   updateAspectRatio();
   return true;
+}
+
+void ImagePainting::onGalleryClicked() {
+  QWidget* parentWidget = m_pathEdit ? m_pathEdit->parentWidget() : nullptr;
+  if (!parentWidget) {
+    parentWidget = QApplication::activeWindow();
+  }
+
+  SvgGalleryDialog gallery(parentWidget);
+  if (gallery.exec() != QDialog::Accepted || gallery.selectedFilePath().isEmpty()) {
+    return; // user cancelled the gallery — leave the current path untouched
+  }
+
+
+  m_pathEdit->setText(gallery.selectedFilePath());
 }

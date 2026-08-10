@@ -174,6 +174,10 @@ private:
   /// @brief Slot: open a file picker for choosing an image/SVG source.
   void onBrowseClicked();
 
+  /// @brief Slot: open the SVG symbol gallery for SVG templates
+  /// @note The gallery is intended to provide templates for symbols
+  void onGalleryClicked();
+
   /// @brief Slot: reset the width/height fields in the properties dialog
   /// to the original dimensions.
   void onResetClicked();
