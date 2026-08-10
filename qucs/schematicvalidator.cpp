@@ -285,10 +285,22 @@ QVector<ValidationIssue> SchematicValidator::checkUnconnectedPorts() const
       Node *node = port->Connection;
       bool isFloating = !node || !netReachesOtherComponent(node, component);
       if (isFloating) {
+
+        // First get the name of the component.
+        QString componentLabel;
+        if (component->Name.isEmpty()){
+          // The component's name is empty (e.g. GND). Then take the model name.
+          componentLabel = QObject::tr("%1 component at (%2, %3)")
+                               .arg(component->Model).arg(component->cx).arg(component->cy);
+        } else {
+          // The component has a name (the vast majority of components)
+          componentLabel = component->Name;
+        }
+
         ValidationIssue issue;
         issue.title = QObject::tr("Disconnected port");
         issue.message = QObject::tr("Port of %1 is not connected to anything.")
-                                 .arg(component->Name);
+                                 .arg(componentLabel);
         issue.severity = 2; // Warning. Simulation may run (e.g. 1-port S-parameter ngspice require one dangling port), but the user must check this.
         issue.suggestedFix = QObject::tr(
             "Connect this pin to the intended net, or check for a typo in the net label.");
