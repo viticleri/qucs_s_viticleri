@@ -578,9 +578,17 @@ Wire* Schematic::splitWire(Wire *source_wire, Node *splitter_node)
     // It's definetely abnormal usage if the node doesn't lie on the wire
     assert(qucs_s::geom::is_between(splitter_node, source_wire->P1(), source_wire->P2()));
 
+    // Get the style of the source wire
+    const QColor netColor = source_wire->color();
+    const int netWidth = source_wire->lineWidth();
+
     // Create new wire
     Wire *new_wire = new Wire(splitter_node, source_wire->Port2);
     new_wire->isSelected = source_wire->isSelected;
+    new_wire->setColor(netColor);
+    new_wire->setLineWidth(netWidth);
+    splitter_node->setColor(netColor);
+    splitter_node->setLineWidth(netWidth);
     a_Wires->push_back(new_wire);
 
     // Preserve label. Label has to be detached from host *before* schrinking the
@@ -2595,13 +2603,15 @@ std::pair<bool,Node*> Schematic::installWire(Wire* wire)
             // … the given wire hasn't been used yet. Fill the gap with it.
             wire->connectPort1(node_pair.first);
             wire->connectPort2(node_pair.second);
+            reconcileNetStyle(node_pair.first, node_pair.second);
             a_Wires->push_back(wire);
             has_been_used = true;
             has_changes = true;
         } else {
             // … the given wire has been already used to fill another gap.
             // Fill this gap with a brand new wire.
-	        auto* w = new Wire(node_pair.first, node_pair.second);
+            auto* w = new Wire(node_pair.first, node_pair.second);
+            reconcileNetStyle(node_pair.first, node_pair.second);
             a_Wires->push_back(w);
             has_changes = true;
         }

@@ -2219,3 +2219,8 @@ bool Schematic::checkDplAndDatNames()
     }
     return false;
 }
+
+
+void Schematic::reconcileNetStyle(Node* a, Node* b) {
+  a->propagateStyle(a->color(), a->lineWidth(), *a_Nodes, *a_Wires);
+}
