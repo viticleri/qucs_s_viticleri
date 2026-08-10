@@ -1855,6 +1855,13 @@ bool QucsApp::saveFile(QucsDoc *Doc)
     updatePortNumber(Doc, Result);
   }
   slotUpdateTreeview();
+
+  // Schematic check
+  if (_settings::Get().item<bool>("ValidateOnSave")){
+    QWidget *w = DocumentTab->currentWidget();
+    runSchematicChecks(w, false);
+  }
+
   return true;
 }
 
@@ -2704,6 +2711,13 @@ void QucsApp::slotSimulate(QWidget *w)
                                        "for digital schematic!"));
           return;
       }
+  }
+
+  // Validate the schematic against that backend's known limitations before running the simulation.
+  // Schematic validation is skipped in "Tuning mode". It also needs to be enabled in the Settings panel.
+  if (!TuningMode && _settings::Get().item<bool>("EnableSchematicValidation")) {
+    if (runSchematicChecks(w, true))
+      return;
   }
 
   if (QucsSettings.DefaultSimulator!=spicecompat::simQucsator && !isDigital) {
@@ -3784,6 +3798,101 @@ void QucsApp::slotSimulateWithSpice()
                 tr("Simulation of text document is not possible!"));
     }
 }
+
+bool QucsApp::runSchematicChecks(QWidget *w, bool isPreSimulation)
+{
+  Schematic *sch = qobject_cast<Schematic*>(w);
+  if (!sch) {
+    // Nothing to check unless the document is an schematic
+    return false;
+  }
+
+  // Get the backend simulator
+  QString backend = simulatorsCombobox->currentText().toLower();
+
+  if (isPreSimulation && TuningMode) {
+    // Skip validation in tuning mode
+    return false;
+  }
+
+  const QString settingKey = isPreSimulation ? "EnableSchematicValidation" : "ValidateOnSave";
+  if (!_settings::Get().item<bool>(settingKey))
+    return false;
+
+  a_validator.setSimulationBackend(backend);
+  a_validator.setSchematic(sch);
+  QVector<ValidationIssue> issues = a_validator.validate();
+  if (issues.isEmpty())
+    return false;
+
+  QDialog dlg(this);
+  dlg.setWindowTitle(isPreSimulation ? tr("Issues found") : tr("Schematic issues found"));
+  QVBoxLayout *layout = new QVBoxLayout(&dlg);
+  QLabel *header = new QLabel(tr("The schematic contains %1 issue(s)").arg(issues.size()), &dlg);
+  header->setWordWrap(true);
+  layout->addWidget(header);
+
+  QTextEdit *textArea = new QTextEdit(&dlg);
+  textArea->setReadOnly(true);
+  QString html;
+  for (int i = 0; i < issues.size(); ++i) {
+    const ValidationIssue &issue = issues[i];
+    // Severity formatting
+    QColor severityColor;
+    QString severity;
+    switch (issue.severity){
+    case 1: // Critical
+      severityColor = Qt::red;
+      severity = QString("Critical");
+      break;
+    case 2: // Warning
+      severityColor = Qt::darkYellow;
+      severity = QString("Warning");
+      break;
+    case 3: // Minor
+      severityColor = Qt::blue;
+      severity = QString("Minor");
+      break;
+    }
+    html += QString("<p><b>%1 #%2 - %3 [<span style='color:%4'>%5</span>]</b>"
+                    "<br><i>%6</i><br><b>Suggested fix</b>: %7</p>")
+                .arg(tr("Issue"))
+                .arg(i + 1)
+                .arg(issue.title.toHtmlEscaped(), severityColor.name(),
+                     severity, issue.message.toHtmlEscaped(),
+                     issue.suggestedFix.toHtmlEscaped());
+  }
+  textArea->setHtml(html);
+  layout->addWidget(textArea);
+
+  QDialogButtonBox *buttons = new QDialogButtonBox(&dlg);
+  if (isPreSimulation) {
+    // Go back to the schematic and fix the issues
+    QPushButton *fixButton = buttons->addButton(tr("Ok"), QDialogButtonBox::AcceptRole);
+    fixButton->setToolTip(tr("Go back to the schematic and fix the issues"));
+    connect(fixButton, &QPushButton::clicked, &dlg, &QDialog::reject);
+
+    // Simulate anyway
+    QPushButton *proceedButton = buttons->addButton(tr("Simulate Anyway"), QDialogButtonBox::RejectRole);
+    proceedButton->setToolTip(tr("Run the simulation"));
+    connect(proceedButton, &QPushButton::clicked, &dlg, &QDialog::accept);
+  } else {
+    // The file is saved
+    QPushButton *okButton = buttons->addButton(tr("OK"), QDialogButtonBox::AcceptRole);
+    connect(okButton, &QPushButton::clicked, &dlg, &QDialog::accept);
+  }
+  layout->addWidget(buttons);
+
+  dlg.resize(480, 280);
+  int result = dlg.exec();
+
+  if (!isPreSimulation) {
+    return false;
+  }
+
+  return result != QDialog::Accepted; // true = block simulation
+}
+
 
 void QucsApp::slotSaveNetlist()
 {

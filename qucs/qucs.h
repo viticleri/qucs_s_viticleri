@@ -27,6 +27,8 @@
 #include <QStack>
 #include <QString>
 
+#include "schematicvalidator.h"  // Schematic validation before simulation
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -128,6 +130,8 @@ public:
   ExternSimDialog *a_tunerExternSimDlg = nullptr;
   bool m_tunerAbortForRerun = false;
 
+  SchematicValidator a_validator; // Schematic validation
+
   // current mouse methods
   void (MouseActions::*MouseMoveAction)(Schematic *, QMouseEvent *);
   void (MouseActions::*MousePressAction)(Schematic *, QMouseEvent *, float,
@@ -203,6 +207,14 @@ public slots:
 
   void slotSimulate(QWidget *w = nullptr);
   void slotSimulateWithSpice();
+
+  /// @brief Validate the schematic before simulation.
+  /// @param w Schematic object
+  /// @param isPresimulation Flag to indicate if the "Simulate anyway" button must be added
+  /// @return 'True' No issues detected.
+  ///         'False' There are issues to solve before simulation
+  bool runSchematicChecks(QWidget *w, bool isPreSimulation);
+
   void slotAbortTuningSimulation();
   void slotTune(bool checked);
 
