@@ -164,8 +164,8 @@ QVector<ValidationIssue> SchematicValidator::checkMinimumPortsInSPSimulation() c
     ValidationIssue issue;
     issue.title = QObject::tr("Wrong S-parameter simulation setup");
     issue.message = QObject::tr(
-                        "The schematic has %1 AC power source."
-                        "ngspice requires at least 2 for S-parameter analysis.").arg(acSourceCount);
+                        "The schematic has %1 AC power source. "
+                        "Ngspice requires at least 2 for S-parameter analysis.").arg(acSourceCount);
     issue.severity = 1; // Critical - simulation will fail
     issue.suggestedFix = QObject::tr(
         "If this is a 1-port SP simulation, add another AC Power souce component with the negative port connected to GND");
