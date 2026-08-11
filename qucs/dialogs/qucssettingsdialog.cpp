@@ -988,14 +988,45 @@ void QucsSettingsDialog::slotDefaultValues()
 
     undoNumEdit->setText("20");
     editorEdit->setText(QucsSettings.BinDir + "qucs");
-    checkWiring->setChecked(false);
-    allowFlexibleWires->setChecked(_settings::Get().itemDefault<bool>("AllowFlexibleWires"));
-    enableSchematicValidation->setChecked(_settings::Get().itemDefault<bool>("EnableSchematicValidation"));
-    validateOnSave->setChecked(_settings::Get().itemDefault<bool>("ValidateOnSave"));
-    checkLoadFromFutureVersions->setChecked(false);
-    checkAntiAliasing->setChecked(false);
-    checkTextAntiAliasing->setChecked(true);
-    checkFullTraceNames->setChecked(false);
+
+    // Checkboxes
+    // 1) Settings tab
+    // Start wiring when clicking open node
+    checkWiring->setChecked(
+        _settings::Get().itemDefault<bool>("NodeWiring"));
+
+    // Try to load also documents created with newer versions of Qucs
+    checkLoadFromFutureVersions->setChecked(
+        _settings::Get().itemDefault<bool>("LoadFutureVersion"));
+
+    // Show prefixes for trace names on diagrams like "ngspice"
+    checkFullTraceNames->setChecked(
+        _settings::Get().itemDefault<bool>("fullTraceName"));
+
+    // Always use the prefix for dataset, i.e. \"tr1.v(out)\" rather than \"v(out)\"
+    alwaysPrefixDataset->setChecked(
+        _settings::Get().itemDefault<bool>("alwaysPrefixDataset"));  // was missing entirely
+
+    // Allow flexible wires
+    allowFlexibleWires->setChecked(
+        _settings::Get().itemDefault<bool>("AllowFlexibleWires"));
+
+    // Check the schematic for common issues before running the simulation
+    enableSchematicValidation->setChecked(
+        _settings::Get().itemDefault<bool>("EnableSchematicValidation"));
+
+    // Check the schematic for common issues after saving
+    validateOnSave->setChecked(
+        _settings::Get().itemDefault<bool>("ValidateOnSave"));
+
+    // 2) Appearance tab
+    // Use anti-aliasing for graphs for a smoother appearance
+    checkAntiAliasing->setChecked(
+        _settings::Get().itemDefault<bool>("GraphAntiAliasing"));
+
+    // Use anti-aliasing for text for a smoother appearance
+    checkTextAntiAliasing->setChecked(
+        _settings::Get().itemDefault<bool>("TextAntiAliasing"));
 }
 
 // -----------------------------------------------------------
