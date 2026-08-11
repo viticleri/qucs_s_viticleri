@@ -211,9 +211,15 @@ QVector<ValidationIssue> SchematicValidator::checkDanglingWires() const
     Node *endpoint1 = wire->Port1;
     Node *endpoint2 = wire->Port2;
 
-    bool endpoint1_isOpen = endpoint1->wires().size() <= 1
+    // To be considered a dangling wire:
+    // 1) The wire has no label associated
+    // 2) It doesn't lead to another wire
+    // 3) It's not tied to another component
+    bool endpoint1_isOpen = !endpoint1->hasLabel()
+                            && endpoint1->wires().size() <= 1
                             && endpoint1->components().empty();
-    bool endpoint2_isOpen = endpoint2->wires().size() <= 1
+    bool endpoint2_isOpen = !endpoint2->hasLabel()
+                            && endpoint2->wires().size() <= 1
                             && endpoint2->components().empty();
 
     if (endpoint1_isOpen && endpoint2_isOpen) {
@@ -234,15 +240,8 @@ QVector<ValidationIssue> SchematicValidator::checkDanglingWires() const
       // First end open
       ValidationIssue issue;
 
-      QString message;
-      if (endpoint1->hasLabel()){
-        message = QObject::tr("Wire end at net '%1' is not connected to anything.").arg(endpoint1->Name);
-      } else {
-        message = QObject::tr("Wire has an unconnected end near (%1, %2).").arg(endpoint1->cx).arg(endpoint1->cy);
-      }
-
       issue.title = QObject::tr("Dangling wire");
-      issue.message = message;
+      issue.message = QObject::tr("Wire has an unconnected end near (%1, %2).").arg(endpoint1->cx).arg(endpoint1->cy);
       issue.severity = 3;
       issue.suggestedFix = QObject::tr(
           "Terminate the open end or remove the dangling wire.");
@@ -253,15 +252,7 @@ QVector<ValidationIssue> SchematicValidator::checkDanglingWires() const
       ValidationIssue issue;
 
       issue.title = QObject::tr("Dangling wire");
-
-      QString message;
-      if (endpoint2->hasLabel()){
-        message = QObject::tr("Wire end at net '%1' is not connected to anything.").arg(endpoint2->Name);
-      } else {
-        message = QObject::tr("Wire has an unconnected end near (%1, %2).").arg(endpoint2->cx).arg(endpoint2->cy);
-      }
-
-      issue.message = message;
+      issue.message = QObject::tr("Wire has an unconnected end near (%1, %2).").arg(endpoint2->cx).arg(endpoint2->cy);
       issue.severity = 3;
       issue.suggestedFix = QObject::tr(
           "Terminate the open end or remove the dangling wire.");
@@ -283,7 +274,7 @@ QVector<ValidationIssue> SchematicValidator::checkUnconnectedPorts() const
     for (Port *port : std::as_const(component->Ports)) {
       // For each port, check if the ports' net reaches something. Otherwise, report issue
       Node *node = port->Connection;
-      bool isFloating = !node || !netReachesOtherComponent(node, component);
+      bool isFloating = !node || (!node->hasLabel() && !netReachesOtherComponent(node, component));
       if (isFloating) {
 
         // First get the name of the component.
@@ -324,6 +315,9 @@ bool SchematicValidator::netReachesOtherComponent(Node *node, Component *owner) 
       continue;
     }
     visited.insert(n);
+
+    if (n->hasLabel())
+      return true;
 
     for (Component *c : n->components()) {
       // Check every component attached to this node.
