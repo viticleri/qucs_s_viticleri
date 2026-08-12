@@ -160,36 +160,27 @@ bool ImagePainting::MousePressing(Schematic* sch) {
       parentWidget = QApplication::activeWindow();
     }
 
-    QString filter = QObject::tr("Images (*.bmp *.gif *.jpg *.jpeg *.png *.svg)");
-    QString newPath = QFileDialog::getOpenFileName(
-        parentWidget,
-        QObject::tr("Select Image"),
-        QDir::homePath(),
-        filter
-        );
+    // If the content is empty, show the full properties dialog to let the user
+    // whether to choose an image from the disk or use the SVG gallery
+    bool accepted = Dialog(parentWidget);
 
-    if (!newPath.isEmpty()) {
-      imagePath = newPath;
-      m_renderable.reset();
-      m_rawData.clear();
-      loadImage();
-
-      bool hasContent = m_renderable && m_renderable->isValid();
-
-      if (hasContent) {
-        x2 = x1 + getImageWidth();
-        y2 = y1 + getImageHeight();
-        updateAspectRatio();
-      } else {
-        const int squareSize = 100;
-        x2 = x1 + squareSize;
-        y2 = y1 + squareSize;
-      }
-    } else {
+    if (accepted == false){
       return false;
     }
-  }
 
+    bool hasContent = m_renderable && m_renderable->isValid();
+
+    if (hasContent == false){
+      return false;
+    }
+
+    x2 = x1 + getImageWidth();
+    y2 = y1 + getImageHeight();
+    updateAspectRatio();
+    if (sch) {
+      snapToGrid(sch);
+    }
+  }
   return true;
 }
 
