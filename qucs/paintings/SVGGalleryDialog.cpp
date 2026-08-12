@@ -41,6 +41,12 @@ SvgGalleryDialog::SvgGalleryDialog(QWidget* parent) : QDialog(parent) {
   m_itemList->setResizeMode(QListWidget::Adjust);
   m_itemList->setMovement(QListWidget::Static);
   m_itemList->setSpacing(8);
+  // Force white background regardless the system theme. This helps to visualize better the images
+  m_itemList->setStyleSheet(
+      "QListWidget { background-color: white; }"
+      "QListWidget::item { color: black; }"
+      );
+  m_itemList->setAutoFillBackground(true);
 
   splitter->addWidget(m_categoryList);
   splitter->addWidget(m_itemList);

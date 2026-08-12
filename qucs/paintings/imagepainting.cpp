@@ -468,7 +468,7 @@ void ImagePainting::setImageFromClipboard() {
 
 void ImagePainting::onBrowseClicked() {
 
-  QString filter = QObject::tr("Images (*.bmp *.gif *.jpg *.jpeg *.png)");
+  QString filter = QObject::tr("Images (*.bmp *.gif *.jpg *.jpeg *.png *.svg)");
   QString path = QFileDialog::getOpenFileName(
       m_pathEdit->parentWidget(),
       QObject::tr("Select Image"),
