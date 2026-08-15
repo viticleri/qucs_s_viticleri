@@ -144,6 +144,7 @@ public:
 
   QString Name; // identity of diagram type (e.g. Polar), used for saving etc.
   QPen    GridPen;
+  bool whiteBackground; // True: White background. False: Transparent background
 
   QList<Graph *>  Graphs;
   QList<qucs::Arc *>    Arcs;

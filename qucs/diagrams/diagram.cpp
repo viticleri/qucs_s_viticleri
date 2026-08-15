@@ -91,6 +91,7 @@ Diagram::Diagram(int _cx, int _cy) {
     Type = isDiagram;
     isSelected = false;
     GridPen = QPen(Qt::lightGray, 0);
+    whiteBackground = false; // Transparent background
 }
 
 Diagram::~Diagram() {
@@ -112,6 +113,19 @@ void Diagram::paintDiagram(QPainter *painter) {
     painter->save();
 
     painter->translate(cx, cy);
+
+    if (whiteBackground) {
+      painter->save();
+      painter->setPen(Qt::NoPen);
+      painter->setBrush(Qt::white);
+      QRectF bgRect(-Bounding_x1,
+                    -y2 - Bounding_y2,
+                    x2 + Bounding_x1 + Bounding_x2,
+                    y2 + Bounding_y2 - Bounding_y1);
+      painter->drawRect(bgRect);
+      painter->restore();
+    }
+
     painter->save();
 
     for (qucs::Line* line : std::as_const(Lines)) {
@@ -1232,6 +1246,7 @@ QString Diagram::save() {
     char c = '0';
     if (xAxis.GridOn) c |= 1;
     if (hideLines) c |= 2;
+    if (whiteBackground) c |= 4;
     s += c;
     s += " " + GridPen.color().name() + " " + QString::number(GridPen.style());
 
@@ -1303,10 +1318,11 @@ bool Diagram::load(const QString &Line, QTextStream *stream) {
     if (!ok) return false;
 
     char c;
-    n = s.section(' ', 5, 5);    // GridOn
+    n = s.section(' ', 5, 5);    // GridOn / hideLines / whiteBackground
     c = n.at(0).toLatin1() - '0';
     xAxis.GridOn = yAxis.GridOn = (c & 1) != 0;
     hideLines = (c & 2) != 0;
+    whiteBackground = (c & 4) != 0;
 
     n = s.section(' ', 6, 6);    // color for GridPen
     QColor co = misc::ColorFromString(n);
