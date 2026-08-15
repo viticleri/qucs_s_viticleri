@@ -138,6 +138,10 @@ public:
   bool sameDependencies(Graph const*, Graph const*) const;
   int  checkColumnWidth(const QString&, const QFontMetrics&, int, int, int);
 
+  /// @brief Convert a diagram to image
+  /// @return QImage object
+  QImage toImage() const;
+
   virtual bool insideDiagram(float, float) const;
   bool insideDiagramP(Graph::iterator const& ) const;
   Marker* setMarker(int x, int y);

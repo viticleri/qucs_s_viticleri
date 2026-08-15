@@ -2019,7 +2019,25 @@ QRect Diagram::boundingRect() const noexcept
     return QRect{QPoint{x1_, y1_}, QPoint{x2_, y2_}}.normalized();
 }
 
-//void Diagram::SetLimitsBySelectionRect(QRectF) {}
+QImage Diagram::toImage() const {
+  int bx1, by1, bx2, by2;
+  const_cast<Diagram*>(this)->Bounding(bx1, by1, bx2, by2);
 
+  const int marginTop   = 15;
+  const int marginRight = 15;
 
-// vim:ts=8:sw=2:noet
+  QImage img(bx2 - bx1 + marginRight, by2 - by1 + marginTop,
+             QImage::Format_ARGB32);
+  img.fill(Qt::white);
+
+  bool wasSelected = isSelected;
+  const_cast<Diagram*>(this)->isSelected = false;
+
+  QPainter painter(&img);
+  painter.translate(-bx1, -by1 + marginTop);
+  const_cast<Diagram*>(this)->paint(&painter);
+
+  const_cast<Diagram*>(this)->isSelected = wasSelected;
+
+  return img;
+}
