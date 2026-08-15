@@ -933,7 +933,7 @@ int main(int argc, char *argv[])
     QucsSettings.SpiceLibDir = QucsDir.canonicalPath() + "/share/" QUCS_NAME "/spicelibrary/";
     QucsSettings.OctaveDir = QucsDir.canonicalPath() + "/share/" QUCS_NAME "/octave/";
     QucsSettings.ExamplesDir = QucsDir.canonicalPath() + "/share/" QUCS_NAME "/examples/";
-    QucsSettings.SvgGalleryDir = QucsDir.canonicalPath() + "/share/" QUCS_NAME "/symbols/";
+    QucsSettings.SvgGalleryDir = QucsDir.canonicalPath() + "/share/" QUCS_NAME "/symbols/SVG";
     QucsSettings.DocDir = QucsDir.canonicalPath() + "/share/" QUCS_NAME "/docs/";
     QucsSettings.Editor = "qucs";
 

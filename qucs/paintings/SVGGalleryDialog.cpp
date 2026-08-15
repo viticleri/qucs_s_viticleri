@@ -21,7 +21,7 @@ SvgGalleryDialog::SvgGalleryDialog(QWidget* parent) : QDialog(parent) {
   m_filterEdit->setPlaceholderText(tr("Search symbols..."));
   mainLayout->addWidget(m_filterEdit);
 
-         // --- Library path row -------------------------------------------
+  // --- Library path row -------------------------------------------
   auto* libraryLayout = new QHBoxLayout;
   m_libraryPathLabel = new QLabel(this);
   m_libraryPathLabel->setStyleSheet("color: gray; font-style: italic;");
@@ -117,7 +117,9 @@ void SvgGalleryDialog::populateGallery() {
 
   // User-configurable library folder (persisted via QSettings, default
   // ~/QucsWorkspace/symbols/
+  if (!m_userLibraryPath.isEmpty()) {
   scanGalleryRoot(m_userLibraryPath);
+  }
 
   populateCategoryList();
 }
@@ -185,9 +187,14 @@ void SvgGalleryDialog::saveUserLibraryPath(const QString& path) {
 }
 
 void SvgGalleryDialog::onSetLibraryPathClicked() {
-  QString startDir = QDir(m_userLibraryPath).exists()
-  ? m_userLibraryPath
-  : QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+
+  // Fall back to the user home directory if the library path doesn't exist yet
+  QString startDir;
+  if (QDir(m_userLibraryPath).exists()) {
+    startDir = m_userLibraryPath;
+  } else {
+    startDir = QDir::homePath() + "/QucsWorkspace/symbols/";
+  }
 
   QString chosen = QFileDialog::getExistingDirectory(
       this, tr("Select SVG Library Folder"), startDir,
@@ -199,8 +206,8 @@ void SvgGalleryDialog::onSetLibraryPathClicked() {
   saveUserLibraryPath(chosen);
   m_libraryPathLabel->setText(tr("User library: %1").arg(m_userLibraryPath));
 
-         // Rescan with the new library path and refresh whatever category is
-         // currently shown, so the change is visible immediately.
+  // Rescan with the new library path and refresh whatever category is
+  // currently shown, so the change is visible immediately.
   populateGallery();
   populateItemsForCategory(m_currentCategory.isEmpty() ? kAllCategory : m_currentCategory);
 }
