@@ -22,7 +22,7 @@ public:
   template<class T>
   T itemDefault(const QString& key)
   {
-    return value(key).value<T>();
+    return m_Defaults[key].value<T>();
   }
 
   /** \brief Store a setting.
