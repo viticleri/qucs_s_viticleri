@@ -115,13 +115,17 @@ void Diagram::paintDiagram(QPainter *painter) {
     painter->translate(cx, cy);
 
     if (whiteBackground) {
+      int bx1, by1, bx2, by2;
+      Bounding(bx1, by1, bx2, by2);
+
+      QRectF bgRect(bx1 - cx,
+                    by1 - cy - DIAGRAM_MARGIN_TOP,
+                    (bx2 - bx1) + DIAGRAM_MARGIN_RIGHT,
+                    (by2 - by1) + DIAGRAM_MARGIN_TOP);
+
       painter->save();
       painter->setPen(Qt::NoPen);
       painter->setBrush(Qt::white);
-      QRectF bgRect(-Bounding_x1,
-                    -y2 - Bounding_y2,
-                    x2 + Bounding_x1 + Bounding_x2,
-                    y2 + Bounding_y2 - Bounding_y1);
       painter->drawRect(bgRect);
       painter->restore();
     }
@@ -2020,21 +2024,23 @@ QRect Diagram::boundingRect() const noexcept
 }
 
 QImage Diagram::toImage() const {
+  // Bonding returns the diagram full coordinates, including the margin
+  // for the axis ticks
   int bx1, by1, bx2, by2;
   const_cast<Diagram*>(this)->Bounding(bx1, by1, bx2, by2);
 
-  const int marginTop   = 15;
-  const int marginRight = 15;
-
-  QImage img(bx2 - bx1 + marginRight, by2 - by1 + marginTop,
+  // Size of the diagram + some room margin (static value)
+  QImage img(bx2 - bx1 + DIAGRAM_MARGIN_RIGHT,
+             by2 - by1 + DIAGRAM_MARGIN_TOP,
              QImage::Format_ARGB32);
   img.fill(Qt::white);
 
+  // Temporarily disable selection during render
   bool wasSelected = isSelected;
   const_cast<Diagram*>(this)->isSelected = false;
 
   QPainter painter(&img);
-  painter.translate(-bx1, -by1 + marginTop);
+  painter.translate(-bx1, -by1 + DIAGRAM_MARGIN_TOP);
   const_cast<Diagram*>(this)->paint(&painter);
 
   const_cast<Diagram*>(this)->isSelected = wasSelected;
