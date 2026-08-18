@@ -556,12 +556,14 @@ void Diagram::calcData(Graph *g) {
             for (i = g->countY; i > 0; i--) {  // every branch of curves
                 px = g->axis(0)->Points;
                 calcCoordinateP(px, pz, py, p, pa);
+                p->setIndep(*px);
                 ++px;
                 pz += 2;
                 ++p;
                 for (z = g->axis(0)->count - 1; z > 0; z--) {  // every point
                     FIT_MEMORY_SIZE;  // need to enlarge memory block ?
                     calcCoordinateP(px, pz, py, p, pa);
+                    p->setIndep(*px);
                     ++px;
                     pz += 2;
                     ++p;
